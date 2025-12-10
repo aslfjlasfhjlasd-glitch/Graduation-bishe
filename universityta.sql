@@ -11,7 +11,7 @@
  Target Server Version : 90500 (9.5.0)
  File Encoding         : 65001
 
- Date: 10/12/2025 12:57:34
+ Date: 10/12/2025 17:43:22
 */
 
 SET NAMES utf8mb4;
@@ -30,7 +30,7 @@ CREATE TABLE `t_bj`  (
   PRIMARY KEY (`BJ_BH`) USING BTREE,
   INDEX `FK_BJ_ZY`(`ZY_BH` ASC) USING BTREE,
   CONSTRAINT `FK_BJ_ZY` FOREIGN KEY (`ZY_BH`) REFERENCES `t_zy` (`ZY_BH`) ON DELETE RESTRICT ON UPDATE RESTRICT
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '学校班级表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '学校班级表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of t_bj
@@ -97,7 +97,7 @@ CREATE TABLE `t_bqzd`  (
   `BQ_MC` varchar(50) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL COMMENT '标签名称',
   `BQ_LX` int NOT NULL COMMENT '标签类型：1-兴趣/活动类别, 2-技能',
   PRIMARY KEY (`BQ_ID`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 14 CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '标签字典表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 14 CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '标签字典表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of t_bqzd
@@ -125,7 +125,7 @@ CREATE TABLE `t_gly`  (
   `GLY_MM` varchar(20) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL COMMENT '密码',
   `GLY_MC` varchar(20) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL COMMENT '名称',
   PRIMARY KEY (`GLY_ZH`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '管理员表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '管理员表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of t_gly
@@ -143,7 +143,7 @@ CREATE TABLE `t_xjbmfzr`  (
   `XJBMFZR_XM` varchar(20) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL COMMENT '姓名',
   `XJBMFZR_DH` varchar(13) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL COMMENT '电话',
   PRIMARY KEY (`XJBMFZR_ZH`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '校级部门负责人信息表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '校级部门负责人信息表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of t_xjbmfzr
@@ -178,7 +178,7 @@ CREATE TABLE `t_xs`  (
   PRIMARY KEY (`XS_XH`) USING BTREE,
   INDEX `FK_XS_BJ`(`BJ_BH` ASC) USING BTREE,
   CONSTRAINT `FK_XS_BJ` FOREIGN KEY (`BJ_BH`) REFERENCES `t_bj` (`BJ_BH`) ON DELETE RESTRICT ON UPDATE RESTRICT
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '学生信息表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '学生信息表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of t_xs
@@ -390,7 +390,7 @@ CREATE TABLE `t_xy`  (
   `FZR_XM` varchar(20) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL COMMENT '负责人姓名',
   `XY_DH` varchar(13) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL COMMENT '学院电话',
   PRIMARY KEY (`XY_ZH`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '学校各学院信息表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '学校各学院信息表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of t_xy
@@ -416,7 +416,7 @@ CREATE TABLE `t_zy`  (
   PRIMARY KEY (`ZY_BH`) USING BTREE,
   INDEX `FK_ZY_XY`(`XYZH` ASC) USING BTREE,
   CONSTRAINT `FK_ZY_XY` FOREIGN KEY (`XYZH`) REFERENCES `t_xy` (`XY_ZH`) ON DELETE RESTRICT ON UPDATE RESTRICT
-) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '学校各专业信息表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '学校各专业信息表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of t_zy
@@ -472,7 +472,7 @@ CREATE TABLE `t_zyhd`  (
   `HD_FQ_DW` varchar(100) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NULL DEFAULT NULL COMMENT '活动发起单位',
   `HD_ZT` varchar(10) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NULL DEFAULT NULL COMMENT '活动状态：未开始；报名中；进行中；已结束',
   PRIMARY KEY (`HD_BH`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 39 CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '志愿活动信息表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 39 CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '志愿活动信息表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of t_zyhd
@@ -512,8 +512,8 @@ INSERT INTO `t_zyhd` VALUES (32, '献血活动志愿者招募（5人）', '2026-
 INSERT INTO `t_zyhd` VALUES (33, '雷锋月姚缘社区志愿服务', '2026-01-07 13:00:00', '2026-01-09 13:00:00', '2026-01-10 13:00:00', '2026-01-10 16:00:00', '书籍整理归类与打包', '姚缘社区（杭州）', 5, 0, 0, '社区服务', NULL, NULL, '无', '无', '国志协', '未开始');
 INSERT INTO `t_zyhd` VALUES (34, '春运铁路杭州站志愿服务', '2026-01-21 08:00:00', '2026-01-23 08:00:00', '2026-01-24 08:00:00', '2026-02-06 16:00:00', '站内引导、咨询、秩序维护等', '杭州站', 5, 0, 0, '赛会服务', NULL, NULL, '着装得体（不穿无袖/裙子/短裤/打底裤/破洞裤/花裤等，不穿凉鞋拖鞋高跟鞋等）至仪容仪表规范（前不遮眉、侧不掩耳、后不及领至男生不留胡须至女生长发马尾至不染彩发至不涂有色指甲油至不浓妆不戴多余饰品）至外向、有领导能力至精神面貌良好、有志愿服务经历。', '交通补贴30元/天至提供中餐、点心和水至服务满3天及以上可盖寒假社会实践证明章至提供暖宝宝、围巾、手套等保暖用品。', '国志协', '未开始');
 INSERT INTO `t_zyhd` VALUES (35, '垃圾分类宣传短片拍摄志愿者招募', '2026-01-13 13:00:00', '2026-01-15 13:00:00', '2026-01-16 13:00:00', '2026-01-16 15:00:00', '参与完成“垃圾大作战”垃圾分类宣传短片拍摄', '浙江外国语学院·大操场', 20, 0, 0, '环境保护', '摄影摄像', '艺术与科技', '无', '无', '艺术学院', '未开始');
-INSERT INTO `t_zyhd` VALUES (36, '献血活动志愿者招募（6人）', '2025-12-11 10:00:00', '2025-12-13 10:00:00', '2025-12-14 10:00:00', '2025-12-14 13:00:00', '协助献血活动开展，引导献血学生，协助医务人员工作', '浙江外国语学院·雅正四楼下花坛处', 6, 0, 0, '社区服务', NULL, NULL, '无', '无', '服务保障单位', '未开始');
-INSERT INTO `t_zyhd` VALUES (37, '余杭区国际会议志愿服务', '2026-01-08 08:00:00', '2026-01-10 08:00:00', '2026-01-11 08:00:00', '2026-01-14 20:00:00', '国内外嘉宾抵离服务、信息咨询、语言服务、场内引导等志愿服务', '杭州（余杭区会场）', 50, 0, 0, '赛会服务', '英语翻译', '英语,商务英语', '年满18周岁至形象气质良好、身心健康至沟通协调能力强，英语口语流利，具备中英文写作能力（非中国国籍志愿者需具备基本汉语交流能力）至要求全勤上岗，需请假至少提前3天告知负责人。', '无', '国志协', '未开始');
+INSERT INTO `t_zyhd` VALUES (36, '献血活动志愿者招募（6人）', '2025-12-01 10:00:00', '2025-12-02 10:00:00', '2025-12-03 10:00:00', '2025-12-04 13:00:00', '协助献血活动开展，引导献血学生，协助医务人员工作', '浙江外国语学院·雅正四楼下花坛处', 6, 0, 0, '社区服务', NULL, NULL, '无', '无', '服务保障单位', '未开始');
+INSERT INTO `t_zyhd` VALUES (37, '余杭区国际会议志愿服务', '2025-12-07 08:00:00', '2025-12-08 08:00:00', '2025-12-09 08:00:00', '2026-01-14 20:00:00', '国内外嘉宾抵离服务、信息咨询、语言服务、场内引导等志愿服务', '杭州（余杭区会场）', 50, 0, 0, '赛会服务', '英语翻译', '英语,商务英语', '年满18周岁至形象气质良好、身心健康至沟通协调能力强，英语口语流利，具备中英文写作能力（非中国国籍志愿者需具备基本汉语交流能力）至要求全勤上岗，需请假至少提前3天告知负责人。', '无', '国志协', '未开始');
 INSERT INTO `t_zyhd` VALUES (38, '校友返校日1对1接待志愿者招募', '2025-12-07 09:00:00', '2025-12-27 16:00:00', '2025-12-28 09:00:00', '2025-12-28 17:00:00', '提前联络校友并确认抵离信息至引导校友参与不同活动至作为观众参与校友会活动至对接用餐至确认离校时间并收尾。', '浙江外国语学院（校内）', 35, 0, 0, '赛会服务', '礼仪接待', NULL, '无', '无', '党群组织', '报名中');
 
 -- ----------------------------
@@ -538,18 +538,12 @@ CREATE TABLE `t_zyhdbmb`  (
   `ZYZ_PJ` varchar(200) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NULL DEFAULT NULL COMMENT '志愿者评价',
   `PF` int NULL DEFAULT 0 COMMENT '评分(1-5分, 用于协同过滤)',
   PRIMARY KEY (`ID`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '志愿活动报名表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '志愿活动报名表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of t_zyhdbmb
 -- ----------------------------
 INSERT INTO `t_zyhdbmb` VALUES (1, '2024104', '李胜男', '语言文化学院', '38', '校友返校日1对1接待志愿者招募', '2025-12-28 09:00-17:00', '浙江外国语学院（校内）', '未审核', NULL, NULL, 0, NULL, NULL, NULL, 0);
-
--- ----------------------------
--- View structure for academies
--- ----------------------------
-DROP VIEW IF EXISTS `academies`;
-CREATE ALGORITHM = UNDEFINED SQL SECURITY DEFINER VIEW `academies` AS select `t_xy`.`XYBH` AS `academy_id`,`t_xy`.`XYMC` AS `academy_name` from `t_xy`;
 
 -- ----------------------------
 -- View structure for activity_registration

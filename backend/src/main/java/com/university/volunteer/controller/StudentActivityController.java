@@ -43,4 +43,21 @@ public class StudentActivityController {
 
         return studentActivityService.registerActivity(studentId, activityId);
     }
+
+    /**
+     * 取消报名
+     *
+     * @param requestBody 包含 studentId 和 activityId
+     */
+    @PostMapping("/activity/cancel")
+    public Result<String> cancelRegistration(@RequestBody Map<String, Object> requestBody) {
+        String studentId = (String) requestBody.get("studentId");
+        Integer activityId = (Integer) requestBody.get("activityId");
+
+        if (studentId == null || activityId == null) {
+            return Result.error("参数不完整");
+        }
+
+        return studentActivityService.cancelRegistration(studentId, activityId);
+    }
 }

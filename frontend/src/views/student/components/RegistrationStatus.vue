@@ -14,13 +14,28 @@ interface Registration {
 const registrations = ref<Registration[]>([])
 const loading = ref(false)
 const error = ref(false)
+const cancelingId = ref<string | null>(null)
+
+// Toast 通知相关
+const toastMessage = ref('')
+const toastType = ref<'success' | 'error'>('success')
+const showToast = ref(false)
+
+const showToastMessage = (message: string, type: 'success' | 'error' = 'success') => {
+  toastMessage.value = message
+  toastType.value = type
+  showToast.value = true
+  setTimeout(() => {
+    showToast.value = false
+  }, 3000)
+}
 
 const fetchRegistrations = async () => {
   loading.value = true
   try {
     // 实际开发中应从 store 获取当前用户 ID
     // 此处使用演示账号：2024104 (李胜男)
-    const studentId = '2024104' 
+    const studentId = '2024104'
     const res = await axios.get(`/api/student/registrations?studentId=${studentId}`)
     if (res.data.code === 200) {
         registrations.value = res.data.data || []
@@ -32,6 +47,34 @@ const fetchRegistrations = async () => {
     error.value = true
   } finally {
     loading.value = false
+  }
+}
+
+const cancelRegistration = async (activityId: string) => {
+  if (!confirm('确定要取消报名吗？')) {
+    return
+  }
+
+  cancelingId.value = activityId
+  try {
+    const studentId = '2024104'
+    const res = await axios.post('/api/student/activity/cancel', {
+      studentId,
+      activityId: parseInt(activityId)
+    })
+
+    if (res.data.code === 200) {
+      showToastMessage('取消报名成功', 'success')
+      // 刷新列表
+      await fetchRegistrations()
+    } else {
+      showToastMessage(res.data.message || '取消报名失败', 'error')
+    }
+  } catch (e: any) {
+    console.error(e)
+    showToastMessage(e.response?.data?.message || '取消报名失败', 'error')
+  } finally {
+    cancelingId.value = null
   }
 }
 

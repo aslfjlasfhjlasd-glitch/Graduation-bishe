@@ -52,4 +52,16 @@ public interface StudentActivityMapper {
     @Insert("INSERT INTO t_zyhdbmb (XS_XH, XS_XM, SS_XY, HD_BH, HD_MC, HD_SJ, HD_DD, BM_ZT) " +
             "VALUES (#{studentId}, #{studentName}, #{academyName}, #{activityId}, #{activityName}, #{activityTime}, #{activityLocation}, #{status})")
     int insertRegistration(ActivityRegistration registration);
+
+    /**
+     * 更新活动已报名人数（YBM_RS字段）
+     */
+    @Update("UPDATE t_zyhd SET YBM_RS = (SELECT COUNT(*) FROM t_zyhdbmb WHERE HD_BH = #{activityId}) WHERE HD_BH = #{activityId}")
+    int updateRegisteredCount(@Param("activityId") Integer activityId);
+
+    /**
+     * 删除报名记录（取消报名）
+     */
+    @Delete("DELETE FROM t_zyhdbmb WHERE XS_XH = #{studentId} AND HD_BH = #{activityId}")
+    int deleteRegistration(@Param("studentId") String studentId, @Param("activityId") Integer activityId);
 }

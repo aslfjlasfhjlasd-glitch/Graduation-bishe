@@ -3,10 +3,17 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import axios from 'axios'
 import Button from '@/components/ui/button/button.vue'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Calendar, MapPin, Users, Leaf, BookOpen, HeartPulse, Sparkles, Info, ShieldCheck, Building2, Clock, CalendarCheck, CalendarX, Activity, Flag, AlertCircle, CheckCircle2 } from 'lucide-vue-next'
+import { Calendar, MapPin, Users, Leaf, BookOpen, HeartPulse, Sparkles, Info, ShieldCheck, Building2, Clock, CalendarCheck, CalendarX, Activity, Flag, AlertCircle, CheckCircle2, Search, X, Filter, SlidersHorizontal } from 'lucide-vue-next'
 import { DialogRoot, DialogOverlay, DialogContent, DialogTitle, DialogDescription } from 'radix-vue'
 import { ToastProvider, ToastViewport, ToastRoot, ToastTitle, ToastDescription, ToastClose } from 'radix-vue'
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+
+// 搜索和筛选相关状态
+const searchKeyword = ref('')
+const selectedStatus = ref('全部')
+const selectedLocation = ref('全部')
+const showFilters = ref(false)
+
 const icons = { Leaf, BookOpen, HeartPulse, Sparkles }
 const pickIcon = (title) => {
   const t = String(title || '')
@@ -39,6 +46,7 @@ const loadActivities = async () => {
         hdsj: String(r.hdsj || ''),
         hddd: String(r.hddd || ''),
         zyrs: String(r.zyrs || ''),
+        ybmrs: Number(r.ybmrs || 0),  // 已报名人数
         // 新增独立时间字段
         bmkssj: r.bmkssj || null,
         bmjssj: r.bmjssj || null,
@@ -252,6 +260,51 @@ const updateStatuses = () => {
   })
 }
 
+// 获取所有唯一的地点
+const uniqueLocations = computed(() => {
+  const locations = activities.value.map(a => a.hddd).filter(Boolean)
+  return ['全部', ...new Set(locations)]
+})
+
+// 筛选后的活动列表
+const filteredActivities = computed(() => {
+  let result = activities.value
+
+  // 关键词搜索
+  if (searchKeyword.value.trim()) {
+    const keyword = searchKeyword.value.trim().toLowerCase()
+    result = result.filter(a =>
+      a.hdmc.toLowerCase().includes(keyword) ||
+      a.hddd.toLowerCase().includes(keyword) ||
+      a.bmsj.toLowerCase().includes(keyword)
+    )
+  }
+
+  // 状态筛选
+  if (selectedStatus.value !== '全部') {
+    result = result.filter(a => a.status === selectedStatus.value)
+  }
+
+  // 地点筛选
+  if (selectedLocation.value !== '全部') {
+    result = result.filter(a => a.hddd === selectedLocation.value)
+  }
+
+  return result
+})
+
+// 清空搜索
+const clearSearch = () => {
+  searchKeyword.value = ''
+  selectedStatus.value = '全部'
+  selectedLocation.value = '全部'
+}
+
+// 切换筛选面板
+const toggleFilters = () => {
+  showFilters.value = !showFilters.value
+}
+
 let statusTimer = null
 onMounted(async () => {
   await loadActivities()
@@ -276,8 +329,115 @@ onUnmounted(() => {
       </ToastRoot>
     </ToastProvider>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    <Card v-for="item in activities" :key="item.id" class="group relative bg-white border border-slate-200/70 shadow-sm hover:shadow-lg rounded-2xl transition-all duration-300 hover:scale-[1.02] ring-1 ring-white/40 min-h-[260px] md:min-h-[300px]">
+    <!-- 搜索和筛选区域 -->
+    <div class="mb-6 space-y-4">
+      <!-- 搜索框 -->
+      <div class="relative">
+        <div class="relative flex items-center gap-3">
+          <div class="relative flex-1">
+            <Search class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <input
+              v-model="searchKeyword"
+              type="text"
+              placeholder="搜索活动名称、地点或时间..."
+              class="w-full pl-12 pr-12 py-3.5 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+            />
+            <button
+              v-if="searchKeyword"
+              @click="searchKeyword = ''"
+              class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              <X class="w-5 h-5" />
+            </button>
+          </div>
+          <Button
+            @click="toggleFilters"
+            variant="outline"
+            class="flex items-center gap-2 px-4 py-3.5 bg-white/80 backdrop-blur-sm border-slate-200 hover:bg-slate-50 transition-all duration-200"
+            :class="{ 'bg-blue-50 border-blue-300 text-blue-700': showFilters }"
+          >
+            <SlidersHorizontal class="w-5 h-5" />
+            <span class="hidden sm:inline">筛选</span>
+          </Button>
+          <Button
+            v-if="searchKeyword || selectedStatus !== '全部' || selectedLocation !== '全部'"
+            @click="clearSearch"
+            variant="outline"
+            class="flex items-center gap-2 px-4 py-3.5 bg-white/80 backdrop-blur-sm border-slate-200 hover:bg-rose-50 hover:border-rose-300 hover:text-rose-700 transition-all duration-200"
+          >
+            <X class="w-5 h-5" />
+            <span class="hidden sm:inline">清空</span>
+          </Button>
+        </div>
+      </div>
+
+      <!-- 筛选面板 -->
+      <div
+        v-if="showFilters"
+        class="bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl p-5 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300"
+      >
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- 状态筛选 -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
+              <Filter class="w-4 h-4 text-blue-600" />
+              活动状态
+            </label>
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="status in ['全部', '报名未开始', '报名进行中', '报名已结束', '活动进行中', '活动已结束']"
+                :key="status"
+                @click="selectedStatus = status"
+                class="px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200"
+                :class="selectedStatus === status
+                  ? 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-md'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'"
+              >
+                {{ status }}
+              </button>
+            </div>
+          </div>
+
+          <!-- 地点筛选 -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
+              <MapPin class="w-4 h-4 text-emerald-600" />
+              活动地点
+            </label>
+            <select
+              v-model="selectedLocation"
+              class="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all duration-200"
+            >
+              <option v-for="loc in uniqueLocations" :key="loc" :value="loc">
+                {{ loc }}
+              </option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 搜索结果统计 -->
+      <div v-if="searchKeyword || selectedStatus !== '全部' || selectedLocation !== '全部'" class="flex items-center gap-2 text-sm text-slate-600">
+        <Info class="w-4 h-4" />
+        <span>找到 <span class="font-semibold text-blue-600">{{ filteredActivities.length }}</span> 个活动</span>
+      </div>
+    </div>
+
+    <!-- 无结果提示 -->
+    <div v-if="filteredActivities.length === 0" class="text-center py-16">
+      <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-slate-100 mb-4">
+        <Search class="w-10 h-10 text-slate-400" />
+      </div>
+      <h3 class="text-lg font-semibold text-slate-900 mb-2">未找到相关活动</h3>
+      <p class="text-slate-600 mb-4">请尝试调整搜索条件或筛选选项</p>
+      <Button @click="clearSearch" variant="outline" class="gap-2">
+        <X class="w-4 h-4" />
+        清空筛选条件
+      </Button>
+    </div>
+
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <Card v-for="item in filteredActivities" :key="item.id" class="group relative bg-white border border-slate-200/70 shadow-sm hover:shadow-lg rounded-2xl transition-all duration-300 hover:scale-[1.02] ring-1 ring-white/40 min-h-[260px] md:min-h-[300px]">
       <CardHeader class="pb-3 px-6 pt-5">
         <div class="flex items-center gap-3">
           <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-tr from-blue-600 via-cyan-500 to-emerald-500 text-white shadow">
@@ -297,7 +457,11 @@ onUnmounted(() => {
         </div>
         <div class="flex items-center text-slate-700 gap-2">
           <Users class="w-5 h-5 text-cyan-600" />
-          <span class="text-[0.95rem]">{{ item.zyrs }}</span>
+          <span class="text-[0.95rem]">
+            <span class="font-semibold text-cyan-700">{{ item.ybmrs }}</span>
+            <span class="text-slate-500 mx-1">/</span>
+            <span>{{ item.zyrs }}</span>
+          </span>
         </div>
       
       </CardContent>

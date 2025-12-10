@@ -132,9 +132,44 @@ public class StudentActivityService {
             return Result.error("报名失败");
         }
 
-        // 8. 更新已报名人数 (无需更新，因为是动态统计)
-        // studentActivityMapper.incrementRegisteredCount(activityId);
+        // 8. 更新活动的已报名人数（YBM_RS字段）
+        studentActivityMapper.updateRegisteredCount(activityId);
 
         return Result.success("报名成功");
+    }
+
+    /**
+     * 取消报名
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public Result<String> cancelRegistration(String studentId, Integer activityId) {
+        // 1. 检查报名记录是否存在
+        int count = studentActivityMapper.countRegistration(studentId, activityId);
+        if (count == 0) {
+            return Result.error("未找到报名记录");
+        }
+
+        // 2. 验证活动状态（可选：只允许在特定状态下取消）
+        VolunteerActivity activity = studentActivityMapper.findActivityById(activityId);
+        if (activity == null) {
+            return Result.error("活动不存在");
+        }
+
+        // 检查活动是否已开始或已结束
+        Date now = new Date();
+        if (activity.getHdKssj() != null && now.after(activity.getHdKssj())) {
+            return Result.error("活动已开始，无法取消报名");
+        }
+
+        // 3. 删除报名记录
+        int rows = studentActivityMapper.deleteRegistration(studentId, activityId);
+        if (rows <= 0) {
+            return Result.error("取消报名失败");
+        }
+
+        // 4. 更新活动的已报名人数（YBM_RS字段）
+        studentActivityMapper.updateRegisteredCount(activityId);
+
+        return Result.success("取消报名成功");
     }
 }

@@ -5,9 +5,11 @@ com\university\volunteer\entity\Admin.class
 com\university\volunteer\service\AuthService.class
 com\university\volunteer\service\DashboardService.class
 com\university\volunteer\mapper\DepartmentHeadMapper.class
+com\university\volunteer\entity\VolunteerActivity.class
 com\university\volunteer\mapper\DashboardMapper.class
 com\university\volunteer\entity\DepartmentHead.class
 com\university\volunteer\dto\ActivityPerformanceDTO.class
+com\university\volunteer\service\DepartmentHeadService.class
 com\university\volunteer\VolunteerApplication.class
 com\university\volunteer\mapper\StudentMapper.class
 com\university\volunteer\mapper\StudentActivityMapper.class
@@ -15,6 +17,7 @@ com\university\volunteer\dto\LoginRequest.class
 com\university\volunteer\entity\ActivityRegistration.class
 com\university\volunteer\entity\Student.class
 com\university\volunteer\mapper\AdminMapper.class
+com\university\volunteer\controller\DepartmentHeadController.class
 com\university\volunteer\service\StudentService.class
 com\university\volunteer\mapper\AcademyMapper.class
 com\university\volunteer\controller\StudentController.class
