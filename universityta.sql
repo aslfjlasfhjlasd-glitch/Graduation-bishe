@@ -11,7 +11,7 @@
  Target Server Version : 90500 (9.5.0)
  File Encoding         : 65001
 
- Date: 10/12/2025 17:43:22
+ Date: 10/12/2025 22:11:02
 */
 
 SET NAMES utf8mb4;
@@ -148,15 +148,15 @@ CREATE TABLE `t_xjbmfzr`  (
 -- ----------------------------
 -- Records of t_xjbmfzr
 -- ----------------------------
-INSERT INTO `t_xjbmfzr` VALUES ('体育部', '800001', '800001', '张一', '05761001');
-INSERT INTO `t_xjbmfzr` VALUES ('行政部门', '800002', '800002', '李二', '05761002');
-INSERT INTO `t_xjbmfzr` VALUES ('服务保障单位', '800003', '800003', '王三', '05761003');
-INSERT INTO `t_xjbmfzr` VALUES ('党群组织', '800004', '800004', '杨四', '05761004');
-INSERT INTO `t_xjbmfzr` VALUES ('教务处', '800005', '800005', '赵五', '05761005');
-INSERT INTO `t_xjbmfzr` VALUES ('国际交流合作处', '800006', '800006', '吴六', '05761006');
-INSERT INTO `t_xjbmfzr` VALUES ('学生处', '800007', '800007', '江七', '05761007');
-INSERT INTO `t_xjbmfzr` VALUES ('学校办公室', '800008', '800008', '孟八', '05761008');
-INSERT INTO `t_xjbmfzr` VALUES ('教学辅助单位', '800009', '800009', '周九', '05761009');
+INSERT INTO `t_xjbmfzr` VALUES ('体育部', '800001', '800001', '王浩宇', '05761001');
+INSERT INTO `t_xjbmfzr` VALUES ('行政部门', '800002', '800002', '杨博文', '05761002');
+INSERT INTO `t_xjbmfzr` VALUES ('服务保障单位', '800003', '800003', '刘雨桐', '05761003');
+INSERT INTO `t_xjbmfzr` VALUES ('党群组织', '800004', '800004', '黄丽', '05761004');
+INSERT INTO `t_xjbmfzr` VALUES ('教务处', '800005', '800005', '王桦杰', '05761005');
+INSERT INTO `t_xjbmfzr` VALUES ('国际交流合作处', '800006', '800006', '周涛', '05761006');
+INSERT INTO `t_xjbmfzr` VALUES ('学生处', '800007', '800007', '刘静枫', '05761007');
+INSERT INTO `t_xjbmfzr` VALUES ('学校办公室', '800008', '800008', '赵杰', '05761008');
+INSERT INTO `t_xjbmfzr` VALUES ('教学辅助单位', '800009', '800009', '吴敏', '05761009');
 
 -- ----------------------------
 -- Table structure for t_xs
@@ -384,8 +384,8 @@ INSERT INTO `t_xs` VALUES (2025580, '章中', '2025580', '1512564649', '0', '共
 -- ----------------------------
 DROP TABLE IF EXISTS `t_xy`;
 CREATE TABLE `t_xy`  (
-  `XY_ZH` varchar(20) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL COMMENT '学院账号',
   `XY_MC` varchar(50) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL COMMENT '学院名称',
+  `XY_ZH` varchar(20) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL COMMENT '学院账号',
   `XY_MM` varchar(20) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL COMMENT '学院密码',
   `FZR_XM` varchar(20) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL COMMENT '负责人姓名',
   `XY_DH` varchar(13) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL COMMENT '学院电话',
@@ -395,12 +395,12 @@ CREATE TABLE `t_xy`  (
 -- ----------------------------
 -- Records of t_xy
 -- ----------------------------
-INSERT INTO `t_xy` VALUES ('100001', '语言文化学院', '100001', '100001', '0576100001');
-INSERT INTO `t_xy` VALUES ('100002', '国商学院', '100002', '100002', '0576100002');
-INSERT INTO `t_xy` VALUES ('100003', '教育学院', '100003', '100003', '0576100003');
-INSERT INTO `t_xy` VALUES ('100004', '文化和旅游学院', '100004', '100004', '0576100004');
-INSERT INTO `t_xy` VALUES ('100005', '艺术学院', '100005', '100005', '0576100005');
-INSERT INTO `t_xy` VALUES ('100006', '马克思主义学院', '100006', '100006', '0576100006');
+INSERT INTO `t_xy` VALUES ('语言文化学院', '100001', '100001', '张伟', '0576100001');
+INSERT INTO `t_xy` VALUES ('国商学院', '100002', '100002', '赵思远', '0576100002');
+INSERT INTO `t_xy` VALUES ('教育学院', '100003', '100003', '黄晓敏', '0576100003');
+INSERT INTO `t_xy` VALUES ('文化和旅游学院', '100004', '100004', '刘佳', '0576100004');
+INSERT INTO `t_xy` VALUES ('艺术学院', '100005', '100005', '李静怡', '0576100005');
+INSERT INTO `t_xy` VALUES ('马克思主义学院', '100006', '100006', '陈铭', '0576100006');
 
 -- ----------------------------
 -- Table structure for t_zy
@@ -514,7 +514,7 @@ INSERT INTO `t_zyhd` VALUES (34, '春运铁路杭州站志愿服务', '2026-01-2
 INSERT INTO `t_zyhd` VALUES (35, '垃圾分类宣传短片拍摄志愿者招募', '2026-01-13 13:00:00', '2026-01-15 13:00:00', '2026-01-16 13:00:00', '2026-01-16 15:00:00', '参与完成“垃圾大作战”垃圾分类宣传短片拍摄', '浙江外国语学院·大操场', 20, 0, 0, '环境保护', '摄影摄像', '艺术与科技', '无', '无', '艺术学院', '未开始');
 INSERT INTO `t_zyhd` VALUES (36, '献血活动志愿者招募（6人）', '2025-12-01 10:00:00', '2025-12-02 10:00:00', '2025-12-03 10:00:00', '2025-12-04 13:00:00', '协助献血活动开展，引导献血学生，协助医务人员工作', '浙江外国语学院·雅正四楼下花坛处', 6, 0, 0, '社区服务', NULL, NULL, '无', '无', '服务保障单位', '未开始');
 INSERT INTO `t_zyhd` VALUES (37, '余杭区国际会议志愿服务', '2025-12-07 08:00:00', '2025-12-08 08:00:00', '2025-12-09 08:00:00', '2026-01-14 20:00:00', '国内外嘉宾抵离服务、信息咨询、语言服务、场内引导等志愿服务', '杭州（余杭区会场）', 50, 0, 0, '赛会服务', '英语翻译', '英语,商务英语', '年满18周岁至形象气质良好、身心健康至沟通协调能力强，英语口语流利，具备中英文写作能力（非中国国籍志愿者需具备基本汉语交流能力）至要求全勤上岗，需请假至少提前3天告知负责人。', '无', '国志协', '未开始');
-INSERT INTO `t_zyhd` VALUES (38, '校友返校日1对1接待志愿者招募', '2025-12-07 09:00:00', '2025-12-27 16:00:00', '2025-12-28 09:00:00', '2025-12-28 17:00:00', '提前联络校友并确认抵离信息至引导校友参与不同活动至作为观众参与校友会活动至对接用餐至确认离校时间并收尾。', '浙江外国语学院（校内）', 35, 0, 0, '赛会服务', '礼仪接待', NULL, '无', '无', '党群组织', '报名中');
+INSERT INTO `t_zyhd` VALUES (38, '校友返校日1对1接待志愿者招募', '2025-12-07 09:00:00', '2025-12-27 16:00:00', '2025-12-28 09:00:00', '2025-12-28 17:00:00', '提前联络校友并确认抵离信息至引导校友参与不同活动至作为观众参与校友会活动至对接用餐至确认离校时间并收尾。', '浙江外国语学院（校内）', 35, 1, 0, '赛会服务', '礼仪接待', NULL, '无', '无', '党群组织', '报名中');
 
 -- ----------------------------
 -- Table structure for t_zyhdbmb
@@ -538,12 +538,12 @@ CREATE TABLE `t_zyhdbmb`  (
   `ZYZ_PJ` varchar(200) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NULL DEFAULT NULL COMMENT '志愿者评价',
   `PF` int NULL DEFAULT 0 COMMENT '评分(1-5分, 用于协同过滤)',
   PRIMARY KEY (`ID`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '志愿活动报名表' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci COMMENT = '志愿活动报名表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of t_zyhdbmb
 -- ----------------------------
-INSERT INTO `t_zyhdbmb` VALUES (1, '2024104', '李胜男', '语言文化学院', '38', '校友返校日1对1接待志愿者招募', '2025-12-28 09:00-17:00', '浙江外国语学院（校内）', '未审核', NULL, NULL, 0, NULL, NULL, NULL, 0);
+INSERT INTO `t_zyhdbmb` VALUES (5, '2024104', '李胜男', '语言文化学院', '38', '校友返校日1对1接待志愿者招募', '2025-12-28 09:00-17:00', '浙江外国语学院（校内）', '未审核', NULL, NULL, 0, NULL, NULL, NULL, 0);
 
 -- ----------------------------
 -- View structure for activity_registration

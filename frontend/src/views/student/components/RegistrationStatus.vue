@@ -98,7 +98,7 @@ onMounted(() => {
               <th class="h-12 px-4 align-middle font-medium text-slate-500">活动时间</th>
               <th class="h-12 px-4 align-middle font-medium text-slate-500">活动地点</th>
               <th class="h-12 px-4 align-middle font-medium text-slate-500">报名状态</th>
-            </tr>
+              <th class="h-12 px-4 align-middle font-medium text-slate-500">操作</th> </tr>
           </thead>
           <tbody class="[&_tr:last-child]:border-0">
             <tr v-if="loading">
@@ -108,15 +108,24 @@ onMounted(() => {
               <td colspan="5" class="p-4 text-center text-slate-500">暂无报名记录</td>
             </tr>
             <tr v-else v-for="item in registrations" :key="item.activityId" class="border-b transition-colors hover:bg-slate-100/50">
-              <td class="p-4 align-middle font-medium">{{ item.activityId }}</td>
-              <td class="p-4 align-middle">{{ item.activityName }}</td>
-              <td class="p-4 align-middle text-slate-600">{{ item.activityTime || '未设置' }}</td>
-              <td class="p-4 align-middle text-slate-600">{{ item.activityLocation || '未设置' }}</td>
-              <td class="p-4 align-middle">
-                <span :class="item.status === '已审核' ? 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800' : 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800'">
-                  {{ item.status || '未审核' }}
-                </span>
-              </td>
+            <td class="p-4 align-middle font-medium">{{ item.activityId }}</td>
+            <td class="p-4 align-middle">{{ item.activityName }}</td>
+            <td class="p-4 align-middle text-slate-600">{{ item.activityTime || '未设置' }}</td>
+            <td class="p-4 align-middle text-slate-600">{{ item.activityLocation || '未设置' }}</td>
+            <td class="p-4 align-middle">
+             <span :class="item.status === '已审核' ? 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800' : 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800'">
+              {{ item.status || '未审核' }}
+             </span>
+          </td>
+          <td class="p-4 align-middle">
+            <button 
+              @click="cancelRegistration(item.activityId)"
+              :disabled="cancelingId === item.activityId"
+               class="text-sm font-medium text-red-600 hover:text-red-800 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+               {{ cancelingId === item.activityId ? '取消中...' : '取消报名' }}
+              </button>
+             </td>
             </tr>
           </tbody>
         </table>

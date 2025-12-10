@@ -64,4 +64,30 @@ public interface StudentActivityMapper {
      */
     @Delete("DELETE FROM t_zyhdbmb WHERE XS_XH = #{studentId} AND HD_BH = #{activityId}")
     int deleteRegistration(@Param("studentId") String studentId, @Param("activityId") Integer activityId);
+
+    /**
+     * 根据活动发起单位查询活动列表
+     */
+    @Select("SELECT HD_BH as hdBh, HD_MC as hdMc, " +
+            "CONCAT(DATE_FORMAT(BM_KSSJ, '%Y-%m-%d %H:%i'), '至', DATE_FORMAT(BM_JSSJ, '%Y-%m-%d %H:%i')) as bmSj, " +
+            "CONCAT(DATE_FORMAT(HD_KSSJ, '%Y-%m-%d %H:%i'), '-', DATE_FORMAT(HD_JSSJ, '%H:%i')) as hdSj, " +
+            "BM_KSSJ as bmKssj, BM_JSSJ as bmJssj, HD_KSSJ as hdKssj, HD_JSSJ as hdJssj, " +
+            "HD_NR as hdNr, HD_DD as hdDd, ZM_RS as zmRs, YBM_RS as ybmRs, " +
+            "HD_BQ as hdBq, JN_YQ as jnYq, ZY_XZ as zyXz, HDXQ as hdXq, " +
+            "HD_BZ as hdBz, HD_FQ_DW as hdFqDw, HD_ZT as hdZt " +
+            "FROM t_zyhd WHERE HD_FQ_DW = #{department} ORDER BY HD_BH DESC")
+    List<VolunteerActivity> findActivitiesByDepartment(@Param("department") String department);
+
+    /**
+     * 根据部门/学院查询报名记录（用于各种管理功能）
+     */
+    @Select("SELECT r.ID as id, r.XS_XH as studentId, r.XS_XM as studentName, r.SS_XY as academyName, " +
+            "r.HD_BH as activityId, r.HD_MC as activityName, r.HD_SJ as activityTime, r.HD_DD as activityLocation, " +
+            "r.BM_ZT as status, r.QD_SJ as checkInTime, r.QT_SJ as checkOutTime, r.QD_ZT as attendanceStatus, " +
+            "r.HD_SC as duration, r.HD_XF as credits, r.ZYZ_PJ as evaluation, r.PF as rating " +
+            "FROM t_zyhdbmb r " +
+            "INNER JOIN t_zyhd a ON r.HD_BH = a.HD_BH " +
+            "WHERE a.HD_FQ_DW = #{department} " +
+            "ORDER BY r.ID DESC")
+    List<ActivityRegistration> findRegistrationsByDepartment(@Param("department") String department);
 }

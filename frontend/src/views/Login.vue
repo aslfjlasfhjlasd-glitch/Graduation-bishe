@@ -55,6 +55,24 @@ const handleLogin = async (role) => {
       localStorage.setItem('studentId', result.data.xsXh);
       localStorage.setItem('studentName', result.data.xsXm || '');
       localStorage.setItem('userRole', 'student');
+    } else if (role === 'head') {
+      // 学院/部门负责人登录（可能是校级部门负责人或学院负责人）
+      if (result.data.xjbmfzrXm) {
+        // 校级部门负责人
+        localStorage.setItem('adminName', result.data.xjbmfzrXm || '负责人');
+        localStorage.setItem('adminDepartment', result.data.xjbmMc || '');
+        localStorage.setItem('adminUsername', result.data.xjbmfzrZh || '');
+      } else if (result.data.xyZh) {
+        // 学院负责人（通过xyZh判断是学院账号）
+        localStorage.setItem('adminName', result.data.fzrXm || '负责人');
+        localStorage.setItem('adminDepartment', result.data.xyMc || '');
+        localStorage.setItem('adminUsername', result.data.xyZh || '');
+      }
+      localStorage.setItem('userRole', 'admin');
+    } else if (role === 'admin' && result.data.glyMc) {
+      // 管理员登录
+      localStorage.setItem('adminName', result.data.glyMc || '管理员');
+      localStorage.setItem('userRole', 'admin');
     }
 
     // 处理记住密码逻辑
@@ -72,9 +90,12 @@ const handleLogin = async (role) => {
     // 登录成功后的页面跳转逻辑
     if (role === 'student') {
       router.push('/student/dashboard');
+    } else if (role === 'head' || role === 'admin') {
+      // 部门负责人和管理员跳转到管理端
+      router.push('/admin/dashboard');
     } else {
-      // 其他角色暂未实现页面，先跳转到学生端作为演示或保留当前页
-      router.push('/student/dashboard'); // 暂定统一跳转，后续区分
+      // 默认跳转
+      router.push('/student/dashboard');
     }
   } else {
     // 登录失败，显示错误信息

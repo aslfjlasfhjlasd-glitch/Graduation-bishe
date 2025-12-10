@@ -1,5 +1,5 @@
 <script setup>
-import { ref, defineAsyncComponent } from 'vue'
+import { ref, defineAsyncComponent, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   LayoutDashboard,
@@ -27,8 +27,22 @@ const router = useRouter()
 const isActivitiesOpen = ref(false) // 活动全流程菜单展开状态
 const activeMenu = ref('dashboard') // 当前激活的菜单项
 
-// 模拟用户信息
-const studentName = ref('张三')
+// 从localStorage获取用户信息
+const studentName = ref(localStorage.getItem('studentName') || '学生')
+
+// 组件挂载时检查登录状态
+onMounted(() => {
+  const storedName = localStorage.getItem('studentName')
+  if (storedName) {
+    studentName.value = storedName
+  }
+  
+  // 如果没有登录信息，跳转到登录页
+  const userRole = localStorage.getItem('userRole')
+  if (!userRole) {
+    router.push('/')
+  }
+})
 
 // 切换子菜单展开/收起
 const toggleActivities = () => {

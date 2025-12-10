@@ -236,11 +236,7 @@ const computeStatus = (item) => {
   if (regStart && regEnd && now >= regStart && now <= regEnd) {
     return '报名进行中'
   }
-  
-  if (regEnd && actStart && now > regEnd && now < actStart) {
-    return '报名已结束'
-  }
-  
+    
   if (actStart && actEnd && now >= actStart && now <= actEnd) {
     return '活动进行中'
   }
@@ -385,7 +381,7 @@ onUnmounted(() => {
             </label>
             <div class="flex flex-wrap gap-2">
               <button
-                v-for="status in ['全部', '报名未开始', '报名进行中', '报名已结束', '活动进行中', '活动已结束']"
+                v-for="status in ['全部', '报名未开始', '报名进行中', '活动进行中', '活动已结束']"
                 :key="status"
                 @click="selectedStatus = status"
                 class="px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200"

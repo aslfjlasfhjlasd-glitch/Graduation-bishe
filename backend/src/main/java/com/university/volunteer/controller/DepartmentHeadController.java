@@ -33,4 +33,48 @@ public class DepartmentHeadController {
 
         return departmentHeadService.auditRegistration(registrationId, status);
     }
+
+    /**
+     * 获取负责人信息
+     * @param username 用户账号
+     */
+    @GetMapping("/info/{username}")
+    public Result<Map<String, Object>> getHeadInfo(@PathVariable String username) {
+        return departmentHeadService.getHeadInfo(username);
+    }
+
+    /**
+     * 更新负责人信息
+     * @param requestBody 包含 username, name, phone
+     */
+    @PutMapping("/info")
+    public Result<String> updateHeadInfo(@RequestBody Map<String, String> requestBody) {
+        String username = requestBody.get("username");
+        String name = requestBody.get("name");
+        String phone = requestBody.get("phone");
+
+        if (username == null || name == null || phone == null) {
+            return Result.error("参数不完整");
+        }
+
+        return departmentHeadService.updateHeadInfo(username, name, phone);
+    }
+
+    /**
+     * 获取负责人发起的活动列表
+     * @param username 负责人账号
+     */
+    @GetMapping("/activities/{username}")
+    public Result<?> getActivitiesByHead(@PathVariable String username) {
+        return departmentHeadService.getActivitiesByHead(username);
+    }
+
+    /**
+     * 获取负责人管理的报名记录列表
+     * @param username 负责人账号
+     */
+    @GetMapping("/registrations/{username}")
+    public Result<?> getRegistrationsByHead(@PathVariable String username) {
+        return departmentHeadService.getRegistrationsByHead(username);
+    }
 }

@@ -11,6 +11,10 @@ public class Academy {
     private String xyMm;
     // 学院名称
     private String xyMc;
+    // 负责人姓名
+    private String fzrXm;
+    // 学院电话
+    private String xyDh;
 
     public String getXyZh() {
         return xyZh;
@@ -34,5 +38,21 @@ public class Academy {
 
     public void setXyMc(String xyMc) {
         this.xyMc = xyMc;
+    }
+
+    public String getFzrXm() {
+        return fzrXm;
+    }
+
+    public void setFzrXm(String fzrXm) {
+        this.fzrXm = fzrXm;
+    }
+
+    public String getXyDh() {
+        return xyDh;
+    }
+
+    public void setXyDh(String xyDh) {
+        this.xyDh = xyDh;
     }
 }
