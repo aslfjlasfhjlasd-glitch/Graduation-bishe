@@ -39,6 +39,11 @@ const loadActivities = async () => {
         hdsj: String(r.hdsj || ''),
         hddd: String(r.hddd || ''),
         zyrs: String(r.zyrs || ''),
+        // 新增独立时间字段
+        bmkssj: r.bmkssj || null,
+        bmjssj: r.bmjssj || null,
+        hdkssj: r.hdkssj || null,
+        hdjssj: r.hdjssj || null,
         icon: pickIcon(r.hdmc)
       }))
       updateStatuses()
@@ -60,7 +65,26 @@ const openDetail = async (id) => {
   try {
     const res = await axios.get(`${API_BASE}/api/dashboard/activities/${id}`)
     if (res.data && res.data.code === 200) {
-      detail.value = res.data.data || null
+      const data = res.data.data || null
+      if (data) {
+        // 添加独立时间字段并计算实时状态
+        detail.value = {
+          ...data,
+          bmkssj: data.bmkssj || null,
+          bmjssj: data.bmjssj || null,
+          hdkssj: data.hdkssj || null,
+          hdjssj: data.hdjssj || null,
+          // 计算实时状态
+          computedStatus: computeStatus({
+            bmkssj: data.bmkssj,
+            bmjssj: data.bmjssj,
+            hdkssj: data.hdkssj,
+            hdjssj: data.hdjssj
+          })
+        }
+      } else {
+        detail.value = null
+      }
     } else {
       detail.value = null
     }
@@ -101,10 +125,19 @@ const showToast = (type, title, desc) => {
   
 
 const registerActivity = async (item) => {
-  if (item.status === '报名未开始') return showToast('error', '报名失败', '报名未开始')
-  if (item.status === '活动未开始') return showToast('error', '报名失败', '活动未开始')
-  if (item.status === '活动已结束') return showToast('error', '报名失败', '活动已结束')
-  if (item.status === '报名已满' || isFull(item)) return showToast('error', '报名失败', '名额已满')
+  // 检查活动状态
+  if (item.status === '报名未开始') {
+    return showToast('error', '报名失败', '报名尚未开始，请等待报名开始时间')
+  }
+  if (item.status === '报名已结束') {
+    return showToast('error', '报名失败', '报名已结束，无法继续报名')
+  }
+  if (item.status === '活动进行中') {
+    return showToast('error', '报名失败', '活动已经开始，无法报名')
+  }
+  if (item.status === '活动已结束') {
+    return showToast('error', '报名失败', '活动已结束')
+  }
 
   try {
     const studentId = localStorage.getItem('studentId') || '2024104'
@@ -118,54 +151,47 @@ const registerActivity = async (item) => {
       // 刷新活动列表以更新状态（如名额变化）
       loadActivities()
     } else {
-      showToast('error', '报名失败', res.data.message || '未知错误')
+      // 处理后端返回的错误信息（如重复报名）
+      const errorMsg = res.data.message || '未知错误'
+      showToast('error', '报名失败', errorMsg)
     }
   } catch (error) {
-    showToast('error', '报名失败', '网络请求失败，请稍后重试')
-    console.error(error)
+    // 处理网络错误
+    const errorMsg = error.response?.data?.message || '网络请求失败，请稍后重试'
+    showToast('error', '报名失败', errorMsg)
+    console.error('报名错误:', error)
   }
 }
 
+// 获取北京时间（UTC+8）
 const toBJNow = () => {
   const now = new Date()
   return new Date(now.getTime() + (480 + now.getTimezoneOffset()) * 60000)
 }
 
-const parseDateToken = (s) => {
-  const m = s.match(/(?:(\d{4})-)?(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/)
-  if (!m) return null
-  const y = m[1] ? Number(m[1]) : undefined
-  const mo = Number(m[2])
-  const d = Number(m[3])
-  const h = Number(m[4])
-  const mi = Number(m[5])
-  const year = y ?? new Date().getFullYear()
-  const ms = Date.UTC(year, mo - 1, d, h - 8, mi, 0)
-  return new Date(ms)
-}
-
-const parseRangeCN = (s) => {
-  if (!s) return [null, null]
-  const str = String(s)
-  if (str.includes('至')) {
-    const parts = str.split('至')
-    const start = parseDateToken(parts[0].trim())
-    const end = parseDateToken(parts[1].trim())
-    return [start, end]
+// 解析后端返回的时间字符串（格式：YYYY-MM-DD HH:mm:ss）
+const parseDateTime = (dateStr) => {
+  if (!dateStr) return null
+  try {
+    // 格式：2026-02-08 14:00:00
+    const match = dateStr.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/)
+    if (!match) return null
+    
+    const [, year, month, day, hour, minute, second] = match
+    // 创建UTC时间，然后减去8小时得到北京时间对应的UTC时间
+    const utcTime = Date.UTC(
+      parseInt(year),
+      parseInt(month) - 1,
+      parseInt(day),
+      parseInt(hour) - 8,  // 北京时间减8小时得到UTC
+      parseInt(minute),
+      parseInt(second)
+    )
+    return new Date(utcTime)
+  } catch (e) {
+    console.error('解析时间失败:', dateStr, e)
+    return null
   }
-  const rm = str.match(/(\d{4}-\d{2}-\d{2})\s+(\d{2}):(\d{2})\s*-\s*(\d{2}):(\d{2})/)
-  if (rm) {
-    const date = rm[1]
-    const sH = Number(rm[2])
-    const sM = Number(rm[3])
-    const eH = Number(rm[4])
-    const eM = Number(rm[5])
-    const start = parseDateToken(`${date} ${String(sH).padStart(2,'0')}:${String(sM).padStart(2,'0')}`)
-    const end = parseDateToken(`${date} ${String(eH).padStart(2,'0')}:${String(eM).padStart(2,'0')}`)
-    return [start, end]
-  }
-  const single = parseDateToken(str.trim())
-  return [single, null]
 }
 
 const statusIconMap = {
@@ -184,15 +210,38 @@ const statusClassMap = {
   '活动已结束': 'bg-slate-200 text-slate-700'
 }
 
+// 根据独立时间字段计算活动状态
 const computeStatus = (item) => {
   const now = toBJNow()
-  const [regStart, regEnd] = parseRangeCN(item.bmsj)
-  const [actStart, actEnd] = parseRangeCN(item.hdsj)
-  if (regStart && now < regStart) return '报名未开始'
-  if (regStart && regEnd && now >= regStart && now <= regEnd) return '报名进行中'
-  if (regEnd && actStart && now > regEnd && now < actStart) return '活动未开始'
-  if (actStart && actEnd && now >= actStart && now <= actEnd) return '活动进行中'
-  if (actEnd && now > actEnd) return '活动已结束'
+  
+  // 使用独立的时间字段
+  const regStart = parseDateTime(item.bmkssj)
+  const regEnd = parseDateTime(item.bmjssj)
+  const actStart = parseDateTime(item.hdkssj)
+  const actEnd = parseDateTime(item.hdjssj)
+  
+  // 状态判断逻辑
+  if (regStart && now < regStart) {
+    return '报名未开始'
+  }
+  
+  if (regStart && regEnd && now >= regStart && now <= regEnd) {
+    return '报名进行中'
+  }
+  
+  if (regEnd && actStart && now > regEnd && now < actStart) {
+    return '报名已结束'
+  }
+  
+  if (actStart && actEnd && now >= actStart && now <= actEnd) {
+    return '活动进行中'
+  }
+  
+  if (actEnd && now > actEnd) {
+    return '活动已结束'
+  }
+  
+  // 默认状态（如果时间字段不完整）
   return '报名进行中'
 }
 
@@ -216,8 +265,8 @@ onUnmounted(() => {
 <template>
   <div class="relative">
     <ToastProvider>
-      <ToastViewport class="absolute left-1/2 -translate-x-1/2 top-4 z-50" />
-      <ToastRoot v-model:open="toastOpen" :class="[toastRootClass, 'rounded-md shadow-lg p-4 pr-10 flex items-start gap-3 data-[state=open]:animate-in data-[state=open]:fade-in data-[state=open]:slide-in-from-top-1 data-[state=closed]:animate-out data-[state=closed]:fade-out data-[state=closed]:slide-out-to-top-1 duration-300']">
+      <ToastViewport class="fixed left-1/2 -translate-x-1/2 top-4 z-[100]" />
+      <ToastRoot v-model:open="toastOpen" :class="[toastRootClass, 'rounded-md shadow-xl p-4 pr-10 flex items-start gap-3 data-[state=open]:animate-in data-[state=open]:fade-in data-[state=open]:slide-in-from-top-1 data-[state=closed]:animate-out data-[state=closed]:fade-out data-[state=closed]:slide-out-to-top-1 duration-300']">
         <component :is="toastIcon" class="w-5 h-5" />
         <div>
           <ToastTitle :class="toastTitleClass">{{ toastTitle }}</ToastTitle>
@@ -271,62 +320,73 @@ onUnmounted(() => {
 
   <DialogRoot v-model:open="detailOpen">
     <DialogOverlay class="fixed inset-0 bg-slate-900/30 backdrop-blur-[6px]" />
-    <DialogContent class="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92vw] max-w-2xl bg-white/80 backdrop-blur-xl border border-white/40 rounded-xl shadow-2xl p-0 z-50">
-      <div class="h-1.5 w-full bg-gradient-to-r from-blue-600 via-cyan-500 to-emerald-500 rounded-t-xl"></div>
-      <div class="p-6 flex items-center gap-3">
+    <DialogContent class="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-lg max-h-[85vh] bg-white/80 backdrop-blur-xl border border-white/40 rounded-xl shadow-2xl p-0 z-50 flex flex-col">
+      <div class="h-1.5 w-full bg-gradient-to-r from-blue-600 via-cyan-500 to-emerald-500 rounded-t-xl flex-shrink-0"></div>
+      <div class="p-5 flex items-center gap-3 flex-shrink-0">
         <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white">
           <Info class="w-4 h-4" />
         </span>
-        <DialogTitle class="text-xl font-semibold text-slate-900">活动详情</DialogTitle>
+        <DialogTitle class="text-lg font-semibold text-slate-900">活动详情</DialogTitle>
       </div>
-      <DialogDescription class="px-6 -mt-2 text-slate-600 text-sm">编号 {{ detail?.id ?? selectedId }}</DialogDescription>
+      <DialogDescription class="px-5 -mt-2 text-slate-600 text-xs flex-shrink-0">编号 {{ detail?.id ?? selectedId }}</DialogDescription>
 
-      <div v-if="detailLoading" class="py-12 text-center text-slate-500">加载中...</div>
-      <div v-else-if="!detail" class="py-12 text-center text-red-500">未获取到详情</div>
-      <div v-else class="mt-4 px-6 pb-6 grid grid-cols-1 gap-3">
-        <div class="flex items-start gap-2 bg-white/70 border border-slate-200 rounded-lg p-3">
-          <Sparkles class="w-4 h-4 text-indigo-600" />
-          <div class="text-sm text-slate-700"><span class="font-medium">活动名称：</span>{{ detail.hdmc }}</div>
-        </div>
-        <div class="flex items-start gap-2 bg-white/70 border border-slate-200 rounded-lg p-3">
-          <Calendar class="w-4 h-4 text-blue-600" />
-          <div class="text-sm text-slate-700"><span class="font-medium">报名时间：</span>{{ detail.bmsj }}</div>
-        </div>
-        <div class="flex items-start gap-2 bg-white/70 border border-slate-200 rounded-lg p-3">
-          <Calendar class="w-4 h-4 text-blue-600" />
-          <div class="text-sm text-slate-700"><span class="font-medium">活动时间：</span>{{ detail.hdsj }}</div>
-        </div>
-        <div class="flex items-start gap-2 bg-white/70 border border-slate-200 rounded-lg p-3">
-          <MapPin class="w-4 h-4 text-emerald-600" />
-          <div class="text-sm text-slate-700"><span class="font-medium">活动地点：</span>{{ detail.hddd }}</div>
-        </div>
-        <div class="flex items-start gap-2 bg-white/70 border border-slate-200 rounded-lg p-3">
-          <Users class="w-4 h-4 text-cyan-600" />
-          <div class="text-sm text-slate-700"><span class="font-medium">招募人数：</span>{{ detail.zyrs }}</div>
-        </div>
-        <div class="flex items-start gap-2 bg-white/70 border border-slate-200 rounded-lg p-3">
-          <BookOpen class="w-4 h-4 text-purple-600" />
-          <div class="text-sm text-slate-700"><span class="font-medium">活动内容：</span>{{ detail.hdnr }}</div>
-        </div>
-        <div class="flex items-start gap-2 bg-white/70 border border-slate-200 rounded-lg p-3">
-          <ShieldCheck class="w-4 h-4 text-rose-600" />
-          <div class="text-sm text-slate-700"><span class="font-medium">活动需求条件：</span>{{ detail.hdxq }}</div>
-        </div>
-        <div class="flex items-start gap-2 bg-white/70 border border-slate-200 rounded-lg p-3">
-          <ShieldCheck class="w-4 h-4 text-rose-600" />
-          <div class="text-sm text-slate-700"><span class="font-medium">活动保障：</span>{{ detail.hdbz }}</div>
-        </div>
-        <div class="flex items-start gap-2 bg-white/70 border border-slate-200 rounded-lg p-3">
-          <Building2 class="w-4 h-4 text-slate-700" />
-          <div class="text-sm text-slate-700"><span class="font-medium">发起单位：</span>{{ detail.hdfqdw }}</div>
-        </div>
-        <div class="flex items-start gap-2 bg-white/70 border border-slate-200 rounded-lg p-3">
-          <Sparkles class="w-4 h-4 text-indigo-600" />
-          <div class="text-sm text-slate-700"><span class="font-medium">状态：</span>{{ detail.hdzt }}</div>
+      <div v-if="detailLoading" class="py-12 text-center text-slate-500 flex-1">加载中...</div>
+      <div v-else-if="!detail" class="py-12 text-center text-red-500 flex-1">未获取到详情</div>
+      <div v-else class="mt-3 px-5 pb-4 overflow-y-auto flex-1 custom-scrollbar">
+        <div class="grid grid-cols-1 gap-2.5">
+          <div class="flex items-start gap-2 bg-white/70 border border-slate-200 rounded-lg p-2.5">
+            <Sparkles class="w-4 h-4 text-indigo-600 flex-shrink-0 mt-0.5" />
+            <div class="text-sm text-slate-700"><span class="font-medium">活动名称：</span>{{ detail.hdmc }}</div>
+          </div>
+          <div class="flex items-start gap-2 bg-white/70 border border-slate-200 rounded-lg p-2.5">
+            <Calendar class="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+            <div class="text-sm text-slate-700"><span class="font-medium">报名时间：</span>{{ detail.bmsj }}</div>
+          </div>
+          <div v-if="detail.hdkssj" class="flex items-start gap-2 bg-white/70 border border-slate-200 rounded-lg p-2.5">
+            <Calendar class="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+            <div class="text-sm text-slate-700"><span class="font-medium">活动开始时间：</span>{{ detail.hdkssj }}</div>
+          </div>
+          <div v-if="detail.hdjssj" class="flex items-start gap-2 bg-white/70 border border-slate-200 rounded-lg p-2.5">
+            <Calendar class="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
+            <div class="text-sm text-slate-700"><span class="font-medium">活动结束时间：</span>{{ detail.hdjssj }}</div>
+          </div>
+          <div class="flex items-start gap-2 bg-white/70 border border-slate-200 rounded-lg p-2.5">
+            <MapPin class="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+            <div class="text-sm text-slate-700"><span class="font-medium">活动地点：</span>{{ detail.hddd }}</div>
+          </div>
+          <div class="flex items-start gap-2 bg-white/70 border border-slate-200 rounded-lg p-2.5">
+            <Users class="w-4 h-4 text-cyan-600 flex-shrink-0 mt-0.5" />
+            <div class="text-sm text-slate-700"><span class="font-medium">招募人数：</span>{{ detail.zyrs }}</div>
+          </div>
+          <div class="flex items-start gap-2 bg-white/70 border border-slate-200 rounded-lg p-2.5">
+            <BookOpen class="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
+            <div class="text-sm text-slate-700"><span class="font-medium">活动内容：</span>{{ detail.hdnr }}</div>
+          </div>
+          <div class="flex items-start gap-2 bg-white/70 border border-slate-200 rounded-lg p-2.5">
+            <ShieldCheck class="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
+            <div class="text-sm text-slate-700"><span class="font-medium">活动需求条件：</span>{{ detail.hdxq }}</div>
+          </div>
+          <div class="flex items-start gap-2 bg-white/70 border border-slate-200 rounded-lg p-2.5">
+            <ShieldCheck class="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
+            <div class="text-sm text-slate-700"><span class="font-medium">活动保障：</span>{{ detail.hdbz }}</div>
+          </div>
+          <div class="flex items-start gap-2 bg-white/70 border border-slate-200 rounded-lg p-2.5">
+            <Building2 class="w-4 h-4 text-slate-700 flex-shrink-0 mt-0.5" />
+            <div class="text-sm text-slate-700"><span class="font-medium">发起单位：</span>{{ detail.hdfqdw }}</div>
+          </div>
+          <div class="flex items-start gap-2 bg-white/70 border border-slate-200 rounded-lg p-2.5">
+            <component :is="statusIconMap[detail.computedStatus]" class="w-4 h-4 flex-shrink-0 mt-0.5" :class="detail.computedStatus === '报名进行中' ? 'text-green-600' : detail.computedStatus === '活动进行中' ? 'text-emerald-600' : detail.computedStatus === '活动已结束' ? 'text-slate-600' : 'text-amber-600'" />
+            <div class="text-sm text-slate-700">
+              <span class="font-medium">状态：</span>
+              <span :class="statusClassMap[detail.computedStatus]?.replace('bg-', 'text-').replace('-100', '-700')" class="font-semibold">
+                {{ detail.computedStatus }}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="px-6 pb-6 flex justify-end">
+      <div class="px-5 pb-4 flex justify-end flex-shrink-0 border-t border-slate-200/50 pt-3">
         <Button variant="outline" @click="detailOpen = false">关闭</Button>
       </div>
     </DialogContent>
@@ -336,5 +396,45 @@ onUnmounted(() => {
 <style scoped>
 .radix-vue-toast-viewport {
   width: 380px;
+}
+
+/* 自定义滚动条样式 */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* 优化字体渲染，防止模糊 */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* 确保对话框内容清晰 */
+.text-sm {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+}
+
+.font-medium {
+  font-weight: 500;
+}
+
+.font-semibold {
+  font-weight: 600;
 }
 </style>
