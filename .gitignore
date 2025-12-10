@@ -1,0 +1,6 @@
+
+# 前端子目录的冗余文件（匹配你的项目结构）
+frontend/node_modules/
+frontend/dist/
+frontend/.env.development
+frontend/.env.production
