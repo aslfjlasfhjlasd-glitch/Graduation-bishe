@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.university.volunteer.mapper.StudentMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="StudentResultMap" type="com.university.volunteer.entity.Student">
+        <id property="xsXh" column="XS_XH"/>
+        <result property="xsXm" column="XS_XM"/>
+        <result property="xsMm" column="XS_MM"/>
+        <result property="xsDh" column="XS_DH"/>
+        <result property="xsXb" column="XS_XB"/>
+        <result property="zzmm" column="ZZMM"/>
+        <result property="ssXy" column="SS_XY"/>
+        <result property="bjBh" column="BJ_BH"/>
+        <result property="bjMc" column="BJ_MC"/>
+        <result property="xqBq" column="XQ_BQ"/>
+        <result property="jnBq" column="JN_BQ"/>
+        <result property="grjj" column="GRJJ"/>
+    </resultMap>
+
+    <!-- 根据用户名查询学生（登录用） -->
+    <select id="findByUsername" resultMap="StudentResultMap">
+        SELECT XS_XH, XS_XM, XS_MM, XS_DH, XS_XB, ZZMM, SS_XY, BJ_BH, BJ_MC
+        FROM t_xs
+        WHERE XS_XH = #{username}
+    </select>
+
+    <!-- 根据学号查询学生完整信息 -->
+    <select id="findStudentById" resultMap="StudentResultMap">
+        SELECT XS_XH, XS_XM, XS_DH, XS_XB, ZZMM, SS_XY, BJ_BH, BJ_MC, XQ_BQ, JN_BQ, GRJJ
+        FROM t_xs
+        WHERE XS_XH = #{studentId}
+    </select>
+
+    <!-- 更新学生信息（学生权限） -->
+    <update id="updateStudentProfile">
+        UPDATE t_xs
+        <set>
+            <if test="zzmm != null and zzmm != ''">
+                ZZMM = #{zzmm},
+            </if>
+            <if test="xsDh != null and xsDh != ''">
+                XS_DH = #{xsDh},
+            </if>
+            <if test="xqBq != null">
+                XQ_BQ = #{xqBq},
+            </if>
+            <if test="jnBq != null">
+                JN_BQ = #{jnBq},
+            </if>
+            <if test="grjj != null">
+                GRJJ = #{grjj},
+            </if>
+        </set>
+        WHERE XS_XH = #{xsXh}
+    </update>
+
+    <!-- 更新学生完整信息（管理员权限） -->
+    <update id="updateStudentFullInfo">
+        UPDATE t_xs
+        <set>
+            <if test="xsXm != null and xsXm != ''">
+                XS_XM = #{xsXm},
+            </if>
+            <if test="xsMm != null and xsMm != ''">
+                XS_MM = #{xsMm},
+            </if>
+            <if test="xsDh != null and xsDh != ''">
+                XS_DH = #{xsDh},
+            </if>
+            <if test="xsXb != null and xsXb != ''">
+                XS_XB = #{xsXb},
+            </if>
+            <if test="zzmm != null and zzmm != ''">
+                ZZMM = #{zzmm},
+            </if>
+            <if test="ssXy != null and ssXy != ''">
+                SS_XY = #{ssXy},
+            </if>
+            <if test="bjBh != null">
+                BJ_BH = #{bjBh},
+            </if>
+            <if test="bjMc != null and bjMc != ''">
+                BJ_MC = #{bjMc},
+            </if>
+            <if test="xqBq != null">
+                XQ_BQ = #{xqBq},
+            </if>
+            <if test="jnBq != null">
+                JN_BQ = #{jnBq},
+            </if>
+            <if test="grjj != null">
+                GRJJ = #{grjj},
+            </if>
+        </set>
+        WHERE XS_XH = #{xsXh}
+    </update>
+
+</mapper>
