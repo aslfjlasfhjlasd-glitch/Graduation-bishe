@@ -195,4 +195,21 @@ public class DepartmentHeadService {
             return Result.error("下架失败，活动不存在");
         }
     }
+
+    /**
+     * 上架活动（更新发布状态为"已发布"）
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public Result<String> publishActivity(Integer activityId) {
+        if (activityId == null) {
+            return Result.error("活动编号不能为空");
+        }
+        
+        int rows = studentActivityMapper.updateActivityPublishStatus(activityId, "已发布");
+        if (rows > 0) {
+            return Result.success("活动已发布");
+        } else {
+            return Result.error("发布失败，活动不存在");
+        }
+    }
 }

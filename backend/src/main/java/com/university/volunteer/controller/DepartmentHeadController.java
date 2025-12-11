@@ -105,4 +105,13 @@ public class DepartmentHeadController {
     public Result<String> unpublishActivity(@PathVariable Integer activityId) {
         return departmentHeadService.unpublishActivity(activityId);
     }
+
+    /**
+     * 上架活动
+     * @param activityId 活动编号
+     */
+    @PutMapping("/activity/{activityId}/publish")
+    public Result<String> publishActivity(@PathVariable Integer activityId) {
+        return departmentHeadService.publishActivity(activityId);
+    }
 }

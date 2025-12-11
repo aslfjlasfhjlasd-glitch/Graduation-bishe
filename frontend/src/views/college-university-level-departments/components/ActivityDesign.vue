@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import Button from '@/components/ui/button/button.vue'
 import Input from '@/components/ui/input/Input.vue'
-import { Plus, Edit, Trash2, Calendar, MapPin, Users, AlertCircle, X, Archive } from 'lucide-vue-next'
+import { Plus, Edit, Trash2, Calendar, MapPin, Users, AlertCircle, X, Archive, Upload } from 'lucide-vue-next'
 import axios from 'axios'
 
 const activities = ref([])
@@ -12,6 +12,27 @@ const errorMessage = ref('')
 const showEditDialog = ref(false)
 const editingActivity = ref(null)
 const successMessage = ref('')
+let messageTimer = null
+
+// 显示消息并自动隐藏
+const showMessage = (type, message) => {
+  if (messageTimer) {
+    clearTimeout(messageTimer)
+  }
+  
+  if (type === 'success') {
+    successMessage.value = message
+    errorMessage.value = ''
+  } else {
+    errorMessage.value = message
+    successMessage.value = ''
+  }
+  
+  messageTimer = setTimeout(() => {
+    successMessage.value = ''
+    errorMessage.value = ''
+  }, 3000)
+}
 
 // 获取活动列表
 const fetchActivities = async () => {
@@ -135,15 +156,15 @@ const saveEdit = async () => {
     const response = await axios.put('http://localhost:8080/api/head/activity', activityData)
     
     if (response.data.code === 200) {
-      successMessage.value = '活动更新成功'
+      showMessage('success', '活动更新成功')
       closeEditDialog()
       await fetchActivities()
     } else {
-      errorMessage.value = response.data.message || '更新失败'
+      showMessage('error', response.data.message || '更新失败')
     }
   } catch (error) {
     console.error('更新活动失败:', error)
-    errorMessage.value = '网络错误，请稍后重试'
+    showMessage('error', '网络错误，请稍后重试')
   } finally {
     loading.value = false
   }
@@ -163,22 +184,28 @@ const deleteActivity = async (activityId, activityName) => {
     const response = await axios.delete(`http://localhost:8080/api/head/activity/${activityId}`)
     
     if (response.data.code === 200) {
-      successMessage.value = '活动删除成功'
+      showMessage('success', '活动删除成功')
       await fetchActivities()
     } else {
-      errorMessage.value = response.data.message || '删除失败'
+      showMessage('error', response.data.message || '删除失败')
     }
   } catch (error) {
     console.error('删除活动失败:', error)
-    errorMessage.value = '网络错误，请稍后重试'
+    showMessage('error', '网络错误，请稍后重试')
   } finally {
     loading.value = false
   }
 }
 
-// 下架活动
-const unpublishActivity = async (activityId, activityName) => {
-  if (!confirm(`确定要下架活动"${activityName}"吗？`)) {
+// 切换发布状态（下架/发布）
+const togglePublishStatus = async (activity) => {
+  const isPublished = activity.fbZt === '已发布'
+  const actionText = isPublished ? '下架' : '发布'
+  const confirmText = isPublished
+    ? `确定要下架活动"${activity.hdMc}"吗？下架后学生将无法看到此活动。`
+    : `确定要发布活动"${activity.hdMc}"吗？发布后学生将可以看到并报名此活动。`
+  
+  if (!confirm(confirmText)) {
     return
   }
 
@@ -187,20 +214,41 @@ const unpublishActivity = async (activityId, activityName) => {
   successMessage.value = ''
 
   try {
-    const response = await axios.put(`http://localhost:8080/api/head/activity/${activityId}/unpublish`)
+    const endpoint = isPublished
+      ? `http://localhost:8080/api/head/activity/${activity.hdBh}/unpublish`
+      : `http://localhost:8080/api/head/activity/${activity.hdBh}/publish`
+    
+    const response = await axios.put(endpoint)
     
     if (response.data.code === 200) {
-      successMessage.value = '活动已下架'
+      showMessage('success', isPublished ? '活动已下架' : '活动已发布')
       await fetchActivities()
     } else {
-      errorMessage.value = response.data.message || '下架失败'
+      showMessage('error', response.data.message || `${actionText}失败`)
     }
   } catch (error) {
-    console.error('下架活动失败:', error)
-    errorMessage.value = '网络错误，请稍后重试'
+    console.error(`${actionText}活动失败:`, error)
+    showMessage('error', '网络错误，请稍后重试')
   } finally {
     loading.value = false
   }
+}
+
+// 获取发布按钮的文字
+const getPublishButtonText = (activity) => {
+  return activity.fbZt === '已发布' ? '下架' : '发布'
+}
+
+// 获取发布按钮的图标
+const getPublishButtonIcon = (activity) => {
+  return activity.fbZt === '已发布' ? Archive : Upload
+}
+
+// 获取发布按钮的样式
+const getPublishButtonClass = (activity) => {
+  return activity.fbZt === '已发布'
+    ? 'gap-2 text-orange-600 hover:text-orange-700 hover:border-orange-300'
+    : 'gap-2 text-green-600 hover:text-green-700 hover:border-green-300'
 }
 
 onMounted(() => {
@@ -268,15 +316,15 @@ onMounted(() => {
                     <Edit class="w-4 h-4" />
                     编辑
                   </Button>
+                  <!-- 统一的发布/下架按钮 -->
                   <Button
-                    v-if="activity.fbZt === '已发布'"
                     variant="outline"
                     size="sm"
-                    class="gap-2 text-orange-600 hover:text-orange-700 hover:border-orange-300"
-                    @click="unpublishActivity(activity.hdBh, activity.hdMc)"
+                    :class="getPublishButtonClass(activity)"
+                    @click="togglePublishStatus(activity)"
                   >
-                    <Archive class="w-4 h-4" />
-                    下架
+                    <component :is="getPublishButtonIcon(activity)" class="w-4 h-4" />
+                    {{ getPublishButtonText(activity) }}
                   </Button>
                   <Button
                     variant="outline"
