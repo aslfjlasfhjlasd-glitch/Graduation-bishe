@@ -2,15 +2,30 @@ package com.university.volunteer.service;
 
 import com.university.volunteer.common.Result;
 import com.university.volunteer.entity.Student;
+import com.university.volunteer.entity.StudentTag;
+import com.university.volunteer.entity.Tag;
 import com.university.volunteer.mapper.StudentMapper;
+import com.university.volunteer.mapper.StudentTagMapper;
+import com.university.volunteer.mapper.TagMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class StudentService {
 
     @Autowired
     private StudentMapper studentMapper;
+    
+    @Autowired
+    private StudentTagMapper studentTagMapper;
+    
+    @Autowired
+    private TagMapper tagMapper;
 
     /**
      * 根据学号获取学生完整信息
@@ -38,6 +53,7 @@ public class StudentService {
      * @param student 学生信息
      * @return 更新结果
      */
+    @Transactional(rollbackFor = Exception.class)
     public Result<String> updateStudentProfile(Student student) {
         try {
             // 验证必填字段
@@ -67,6 +83,41 @@ public class StudentService {
                 }
             }
 
+            // 处理标签更新（新增逻辑）
+            if (student.getTagIds() != null && !student.getTagIds().isEmpty()) {
+                // 1. 删除学生的所有旧标签关联
+                studentTagMapper.deleteByStudentId(student.getXsXh());
+                
+                // 2. 批量插入新的标签关联
+                List<StudentTag> studentTags = new ArrayList<>();
+                for (Integer tagId : student.getTagIds()) {
+                    StudentTag st = new StudentTag();
+                    st.setXsXh(student.getXsXh());
+                    st.setBqId(tagId);
+                    studentTags.add(st);
+                }
+                if (!studentTags.isEmpty()) {
+                    studentTagMapper.insertBatch(studentTags);
+                }
+                
+                // 3. 更新冗余字段（用于兼容和快速查询）
+                List<Tag> tags = tagMapper.findByIds(student.getTagIds());
+                if (tags != null && !tags.isEmpty()) {
+                    // 分离兴趣标签和技能标签
+                    String xqBq = tags.stream()
+                            .filter(tag -> tag.getBqLx() == 1)
+                            .map(Tag::getBqMc)
+                            .collect(Collectors.joining(","));
+                    String jnBq = tags.stream()
+                            .filter(tag -> tag.getBqLx() == 2)
+                            .map(Tag::getBqMc)
+                            .collect(Collectors.joining(","));
+                    student.setXqBq(xqBq.isEmpty() ? null : xqBq);
+                    student.setJnBq(jnBq.isEmpty() ? null : jnBq);
+                }
+            }
+
+            // 更新学生基本信息
             int rows = studentMapper.updateStudentProfile(student);
             if (rows > 0) {
                 return Result.success("个人信息更新成功");
@@ -84,10 +135,41 @@ public class StudentService {
      * @param student 学生信息
      * @return 更新结果
      */
+    @Transactional(rollbackFor = Exception.class)
     public Result<String> updateStudentFullInfo(Student student) {
         try {
             if (student.getXsXh() == null) {
                 return Result.error("学号不能为空");
+            }
+
+            // 处理标签更新（与updateStudentProfile相同的逻辑）
+            if (student.getTagIds() != null && !student.getTagIds().isEmpty()) {
+                studentTagMapper.deleteByStudentId(student.getXsXh());
+                
+                List<StudentTag> studentTags = new ArrayList<>();
+                for (Integer tagId : student.getTagIds()) {
+                    StudentTag st = new StudentTag();
+                    st.setXsXh(student.getXsXh());
+                    st.setBqId(tagId);
+                    studentTags.add(st);
+                }
+                if (!studentTags.isEmpty()) {
+                    studentTagMapper.insertBatch(studentTags);
+                }
+                
+                List<Tag> tags = tagMapper.findByIds(student.getTagIds());
+                if (tags != null && !tags.isEmpty()) {
+                    String xqBq = tags.stream()
+                            .filter(tag -> tag.getBqLx() == 1)
+                            .map(Tag::getBqMc)
+                            .collect(Collectors.joining(","));
+                    String jnBq = tags.stream()
+                            .filter(tag -> tag.getBqLx() == 2)
+                            .map(Tag::getBqMc)
+                            .collect(Collectors.joining(","));
+                    student.setXqBq(xqBq.isEmpty() ? null : xqBq);
+                    student.setJnBq(jnBq.isEmpty() ? null : jnBq);
+                }
             }
 
             int rows = studentMapper.updateStudentFullInfo(student);

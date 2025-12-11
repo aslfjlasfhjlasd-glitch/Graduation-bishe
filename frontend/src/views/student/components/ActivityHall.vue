@@ -133,12 +133,12 @@ const showToast = (type, title, desc) => {
   
 
 const registerActivity = async (item) => {
-  // 检查活动状态
+  // 检查活动状态 - 只有"活动报名中"才能报名
   if (item.status === '报名未开始') {
     return showToast('error', '报名失败', '报名尚未开始，请等待报名开始时间')
   }
-  if (item.status === '报名已结束') {
-    return showToast('error', '报名失败', '报名已结束，无法继续报名')
+  if (item.status === '活动未开始') {
+    return showToast('error', '报名失败', '报名已结束，请关注下次活动')
   }
   if (item.status === '活动进行中') {
     return showToast('error', '报名失败', '活动已经开始，无法报名')
@@ -204,16 +204,16 @@ const parseDateTime = (dateStr) => {
 
 const statusIconMap = {
   '报名未开始': Clock,
-  '报名进行中': CalendarCheck,
-  '报名已结束': CalendarX,
+  '活动报名中': CalendarCheck,
+  '活动未开始': CalendarX,
   '活动进行中': Activity,
   '活动已结束': Flag
 }
 
 const statusClassMap = {
   '报名未开始': 'bg-slate-100 text-slate-700',
-  '报名进行中': 'bg-green-100 text-green-700',
-  '报名已结束': 'bg-amber-100 text-amber-700',
+  '活动报名中': 'bg-green-100 text-green-700',
+  '活动未开始': 'bg-amber-100 text-amber-700',
   '活动进行中': 'bg-emerald-100 text-emerald-700',
   '活动已结束': 'bg-slate-200 text-slate-700'
 }
@@ -228,25 +228,39 @@ const computeStatus = (item) => {
   const actStart = parseDateTime(item.hdkssj)
   const actEnd = parseDateTime(item.hdjssj)
   
-  // 状态判断逻辑
-  if (regStart && now < regStart) {
+  // 如果时间字段不完整，返回未知状态
+  if (!regStart || !regEnd || !actStart || !actEnd) {
     return '报名未开始'
   }
   
-  if (regStart && regEnd && now >= regStart && now <= regEnd) {
-    return '报名进行中'
+  // 状态判断逻辑（按时间顺序）
+  // 1. 报名未开始
+  if (now < regStart) {
+    return '报名未开始'
   }
-    
-  if (actStart && actEnd && now >= actStart && now <= actEnd) {
+  
+  // 2. 活动报名中
+  if (now >= regStart && now <= regEnd) {
+    return '活动报名中'
+  }
+  
+  // 3. 报名已结束，活动未开始
+  if (now > regEnd && now < actStart) {
+    return '活动未开始'
+  }
+  
+  // 4. 活动进行中
+  if (now >= actStart && now <= actEnd) {
     return '活动进行中'
   }
   
-  if (actEnd && now > actEnd) {
+  // 5. 活动已结束
+  if (now > actEnd) {
     return '活动已结束'
   }
   
-  // 默认状态（如果时间字段不完整）
-  return '报名进行中'
+  // 默认状态
+  return '报名未开始'
 }
 
 const updateStatuses = () => {
@@ -381,7 +395,7 @@ onUnmounted(() => {
             </label>
             <div class="flex flex-wrap gap-2">
               <button
-                v-for="status in ['全部', '报名未开始', '报名进行中', '活动进行中', '活动已结束']"
+                v-for="status in ['全部', '报名未开始', '活动报名中', '活动未开始', '活动进行中', '活动已结束']"
                 :key="status"
                 @click="selectedStatus = status"
                 class="px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200"
@@ -535,7 +549,7 @@ onUnmounted(() => {
             <div class="text-sm text-slate-700"><span class="font-medium">发起单位：</span>{{ detail.hdfqdw }}</div>
           </div>
           <div class="flex items-start gap-2 bg-white/70 border border-slate-200 rounded-lg p-2.5">
-            <component :is="statusIconMap[detail.computedStatus]" class="w-4 h-4 flex-shrink-0 mt-0.5" :class="detail.computedStatus === '报名进行中' ? 'text-green-600' : detail.computedStatus === '活动进行中' ? 'text-emerald-600' : detail.computedStatus === '活动已结束' ? 'text-slate-600' : 'text-amber-600'" />
+            <component :is="statusIconMap[detail.computedStatus]" class="w-4 h-4 flex-shrink-0 mt-0.5" :class="detail.computedStatus === '活动报名中' ? 'text-green-600' : detail.computedStatus === '活动进行中' ? 'text-emerald-600' : detail.computedStatus === '活动已结束' ? 'text-slate-600' : 'text-slate-700'" />
             <div class="text-sm text-slate-700">
               <span class="font-medium">状态：</span>
               <span :class="statusClassMap[detail.computedStatus]?.replace('bg-', 'text-').replace('-100', '-700')" class="font-semibold">

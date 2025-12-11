@@ -11,7 +11,7 @@
  Target Server Version : 90500 (9.5.0)
  File Encoding         : 65001
 
- Date: 11/12/2025 20:31:02
+ Date: 11/12/2025 20:48:34
 */
 
 SET NAMES utf8mb4;
@@ -3053,6 +3053,7 @@ CREATE TABLE `t_zyhd_bq`  (
 -- ----------------------------
 -- Records of t_zyhd_bq
 -- ----------------------------
+INSERT INTO `t_zyhd_bq` VALUES (1, 6, '2025-12-11 20:46:50');
 
 -- ----------------------------
 -- Table structure for t_zyhdbmb

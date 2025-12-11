@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import Button from '@/components/ui/button/button.vue'
 import Input from '@/components/ui/input/Input.vue'
-import { Plus, Edit, Trash2, Calendar, MapPin, Users, AlertCircle, X, Archive, Upload, CheckCircle } from 'lucide-vue-next'
+import { Plus, Edit, Trash2, Calendar, MapPin, Users, AlertCircle, X, Archive, Upload } from 'lucide-vue-next'
 import axios from 'axios'
 
 const activities = ref([])
@@ -74,13 +74,40 @@ const fetchActivities = async () => {
   }
 }
 
+// 根据独立时间字段计算活动状态
+const computeStatus = (item) => {
+  // 获取北京时间（UTC+8）
+  const now = new Date()
+  const bjNow = new Date(now.getTime() + (8 * 60 * 60 * 1000))
+  
+  // 解析时间字段（假设后端返回的是 ISO 8601 格式或时间戳）
+  const bmKssj = new Date(item.bmKssj)
+  const bmJssj = new Date(item.bmJssj)
+  const hdKssj = new Date(item.hdKssj)
+  const hdJssj = new Date(item.hdJssj)
+  
+  // 根据时间判断状态
+  if (bjNow < bmKssj) {
+    return '报名未开始'
+  } else if (bjNow >= bmKssj && bjNow <= bmJssj) {
+    return '活动报名中'
+  } else if (bjNow > bmJssj && bjNow < hdKssj) {
+    return '活动未开始'
+  } else if (bjNow >= hdKssj && bjNow <= hdJssj) {
+    return '活动进行中'
+  } else {
+    return '活动已结束'
+  }
+}
+
 // 计算活动状态的显示样式
 const getStatusClass = (status) => {
   const statusMap = {
-    '未开始': 'bg-slate-100 text-slate-700',
-    '报名中': 'bg-blue-100 text-blue-700',
-    '进行中': 'bg-green-100 text-green-700',
-    '已结束': 'bg-slate-100 text-slate-500'
+    '报名未开始': 'bg-slate-100 text-slate-700',
+    '活动报名中': 'bg-blue-100 text-blue-700',
+    '活动未开始': 'bg-yellow-100 text-yellow-700',
+    '活动进行中': 'bg-green-100 text-green-700',
+    '活动已结束': 'bg-slate-100 text-slate-500'
   }
   return statusMap[status] || 'bg-slate-100 text-slate-700'
 }
@@ -88,7 +115,8 @@ const getStatusClass = (status) => {
 // 计算发布状态的显示样式
 const getPublishStatusClass = (status) => {
   const statusMap = {
-    '未发布': 'bg-yellow-100 text-yellow-700',
+    '待申报': 'bg-yellow-100 text-yellow-700',
+    '待发布': 'bg-blue-100 text-blue-700',
     '已发布': 'bg-green-100 text-green-700',
     '已下架': 'bg-slate-100 text-slate-500'
   }
@@ -323,14 +351,9 @@ const submitActivity = async (activity) => {
   }
 }
 
-// 判断是否可以申报（只有未发布的活动可以申报）
-const canSubmit = (activity) => {
-  return activity.fbZt === '未发布'
-}
-
-// 发布活动（管理员专用）
-const publishActivity = async (activity) => {
-  if (!confirm(`确定要发布活动"${activity.hdMc}"吗？发布后学生即可看到并报名。`)) {
+// 撤销申报
+const cancelSubmitActivity = async (activity) => {
+  if (!confirm(`确定要撤销申报活动"${activity.hdMc}"吗？撤销后可以重新编辑和申报。`)) {
     return
   }
 
@@ -339,26 +362,32 @@ const publishActivity = async (activity) => {
   successMessage.value = ''
 
   try {
-    const response = await axios.put(`http://localhost:8080/api/admin/activity/${activity.hdBh}/publish`)
+    const response = await axios.put(`http://localhost:8080/api/head/activity/${activity.hdBh}/cancel-submit`)
     
     if (response.data.code === 200) {
-      showMessage('success', '活动已发布')
+      showMessage('success', '已撤销申报')
       await fetchActivities()
     } else {
-      showMessage('error', response.data.message || '发布失败')
+      showMessage('error', response.data.message || '撤销申报失败')
     }
   } catch (error) {
-    console.error('发布活动失败:', error)
+    console.error('撤销申报失败:', error)
     showMessage('error', '网络错误，请稍后重试')
   } finally {
     loading.value = false
   }
 }
 
-// 判断是否可以发布（管理员专用，只有"已申报"或"未发布"的活动可以发布）
-const canPublish = (activity) => {
-  return isAdmin.value && (activity.fbZt === '已申报' || activity.fbZt === '未发布')
+// 判断是否可以申报（只有待申报的活动可以申报）
+const canSubmit = (activity) => {
+  return activity.fbZt === '待申报'
 }
+
+// 判断是否可以撤销申报（只有待发布的活动可以撤销申报）
+const canCancelSubmit = (activity) => {
+  return activity.fbZt === '待发布'
+}
+
 
 onMounted(() => {
   fetchActivities()
@@ -411,11 +440,11 @@ onMounted(() => {
                 <div class="flex-1">
                   <div class="flex items-center gap-3 mb-2">
                     <h3 class="font-semibold text-lg text-slate-900">{{ activity.hdMc }}</h3>
-                    <span :class="['px-3 py-1 rounded-full text-xs font-medium', getStatusClass(activity.hdZt)]">
-                      {{ activity.hdZt }}
+                    <span :class="['px-3 py-1 rounded-full text-xs font-medium', getStatusClass(computeStatus(activity))]">
+                      {{ computeStatus(activity) }}
                     </span>
                     <span :class="['px-3 py-1 rounded-full text-xs font-medium', getPublishStatusClass(activity.fbZt)]">
-                      {{ activity.fbZt || '未发布' }}
+                      {{ activity.fbZt || '待申报' }}
                     </span>
                   </div>
                   <p class="text-sm text-slate-600 line-clamp-2">{{ activity.hdNr || '暂无描述' }}</p>
@@ -426,7 +455,7 @@ onMounted(() => {
                     编辑
                   </Button>
                   
-                  <!-- 负责人：申报按钮 - 只有未发布的活动可以申报 -->
+                  <!-- 负责人：申报按钮 - 只有待申报的活动可以申报 -->
                   <Button
                     v-if="!isAdmin && canSubmit(activity)"
                     variant="outline"
@@ -438,16 +467,16 @@ onMounted(() => {
                     申报活动
                   </Button>
                   
-                  <!-- 管理员：发布按钮 - 只有"已申报"或"未发布"的活动可以发布 -->
+                  <!-- 负责人：撤销申报按钮 - 只有待发布的活动可以撤销申报 -->
                   <Button
-                    v-if="canPublish(activity)"
+                    v-if="!isAdmin && canCancelSubmit(activity)"
                     variant="outline"
                     size="sm"
-                    class="gap-2 text-green-600 hover:text-green-700 hover:border-green-300"
-                    @click="publishActivity(activity)"
+                    class="gap-2 text-orange-600 hover:text-orange-700 hover:border-orange-300"
+                    @click="cancelSubmitActivity(activity)"
                   >
-                    <CheckCircle class="w-4 h-4" />
-                    发布活动
+                    <X class="w-4 h-4" />
+                    撤销申报
                   </Button>
                   
                   <Button

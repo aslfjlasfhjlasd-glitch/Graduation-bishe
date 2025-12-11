@@ -1,12 +1,13 @@
-package com.university.volunteer.entity;
+package com.university.volunteer.dto;
 
+import java.util.Date;
 import java.util.List;
 
 /**
- * 志愿活动实体类
- * 对应数据库表: t_zyhd
+ * 志愿活动数据传输对象
+ * 用于活动信息的输入和输出
  */
-public class VolunteerActivity {
+public class ActivityDTO {
     // 活动编号
     private Integer hdBh;
     // 活动名称
@@ -17,19 +18,19 @@ public class VolunteerActivity {
     private String hdSj;
     
     // 报名开始时间
-    private java.util.Date bmKssj;
+    private Date bmKssj;
     // 报名结束时间
-    private java.util.Date bmJssj;
+    private Date bmJssj;
     // 活动开始时间
-    private java.util.Date hdKssj;
+    private Date hdKssj;
     // 活动结束时间
-    private java.util.Date hdJssj;
+    private Date hdJssj;
 
     // 活动内容
     private String hdNr;
     // 活动地点
     private String hdDd;
-    // 招募人数 (整数)
+    // 招募人数
     private Integer zmRs;
     // 已报名人数
     private Integer ybmRs;
@@ -43,19 +44,18 @@ public class VolunteerActivity {
     private String hdZt;
     // 发布状态
     private String fbZt;
-    // 活动标签（字符串，用于兼容和冗余存储）
-    private String hdBq;
-    // 技能要求（字符串，用于兼容和冗余存储）
-    private String jnYq;
     // 专业限制
     private String zyXz;
-    // 乐观锁版本号
-    private Integer bbh;
     
-    // 新增：标签列表（用于结构化数据）
-    private List<Tag> tags;
-    // 新增：标签ID列表（用于前后端交互）
+    // 活动标签（字符串，兼容旧版）
+    private String hdBq;
+    // 技能要求（字符串，兼容旧版）
+    private String jnYq;
+    
+    // 标签ID列表（新版，用于提交）
     private List<Integer> tagIds;
+    // 标签详情列表（新版，用于展示）
+    private List<TagDTO> tags;
 
     public Integer getHdBh() {
         return hdBh;
@@ -89,35 +89,35 @@ public class VolunteerActivity {
         this.hdSj = hdSj;
     }
 
-    public java.util.Date getBmKssj() {
+    public Date getBmKssj() {
         return bmKssj;
     }
 
-    public void setBmKssj(java.util.Date bmKssj) {
+    public void setBmKssj(Date bmKssj) {
         this.bmKssj = bmKssj;
     }
 
-    public java.util.Date getBmJssj() {
+    public Date getBmJssj() {
         return bmJssj;
     }
 
-    public void setBmJssj(java.util.Date bmJssj) {
+    public void setBmJssj(Date bmJssj) {
         this.bmJssj = bmJssj;
     }
 
-    public java.util.Date getHdKssj() {
+    public Date getHdKssj() {
         return hdKssj;
     }
 
-    public void setHdKssj(java.util.Date hdKssj) {
+    public void setHdKssj(Date hdKssj) {
         this.hdKssj = hdKssj;
     }
 
-    public java.util.Date getHdJssj() {
+    public Date getHdJssj() {
         return hdJssj;
     }
 
-    public void setHdJssj(java.util.Date hdJssj) {
+    public void setHdJssj(Date hdJssj) {
         this.hdJssj = hdJssj;
     }
 
@@ -193,6 +193,14 @@ public class VolunteerActivity {
         this.fbZt = fbZt;
     }
 
+    public String getZyXz() {
+        return zyXz;
+    }
+
+    public void setZyXz(String zyXz) {
+        this.zyXz = zyXz;
+    }
+
     public String getHdBq() {
         return hdBq;
     }
@@ -209,35 +217,19 @@ public class VolunteerActivity {
         this.jnYq = jnYq;
     }
 
-    public String getZyXz() {
-        return zyXz;
-    }
-
-    public void setZyXz(String zyXz) {
-        this.zyXz = zyXz;
-    }
-
-    public Integer getBbh() {
-        return bbh;
-    }
-
-    public void setBbh(Integer bbh) {
-        this.bbh = bbh;
-    }
-
-    public List<Tag> getTags() {
-        return tags;
-    }
-
-    public void setTags(List<Tag> tags) {
-        this.tags = tags;
-    }
-
     public List<Integer> getTagIds() {
         return tagIds;
     }
 
     public void setTagIds(List<Integer> tagIds) {
         this.tagIds = tagIds;
+    }
+
+    public List<TagDTO> getTags() {
+        return tags;
+    }
+
+    public void setTags(List<TagDTO> tags) {
+        this.tags = tags;
     }
 }

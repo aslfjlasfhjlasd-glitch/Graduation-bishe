@@ -55,13 +55,40 @@ const fetchActivities = async () => {
   }
 }
 
+// 根据独立时间字段计算活动状态
+const computeStatus = (item) => {
+  // 获取北京时间（UTC+8）
+  const now = new Date()
+  const bjNow = new Date(now.getTime() + (8 * 60 * 60 * 1000))
+  
+  // 解析时间字段（假设后端返回的是 ISO 8601 格式或时间戳）
+  const bmKssj = new Date(item.bmKssj)
+  const bmJssj = new Date(item.bmJssj)
+  const hdKssj = new Date(item.hdKssj)
+  const hdJssj = new Date(item.hdJssj)
+  
+  // 根据时间判断状态
+  if (bjNow < bmKssj) {
+    return '报名未开始'
+  } else if (bjNow >= bmKssj && bjNow <= bmJssj) {
+    return '活动报名中'
+  } else if (bjNow > bmJssj && bjNow < hdKssj) {
+    return '活动未开始'
+  } else if (bjNow >= hdKssj && bjNow <= hdJssj) {
+    return '活动进行中'
+  } else {
+    return '活动已结束'
+  }
+}
+
 // 计算活动状态的显示样式
 const getStatusClass = (status) => {
   const statusMap = {
-    '未开始': 'bg-slate-100 text-slate-700',
-    '报名中': 'bg-blue-100 text-blue-700',
-    '进行中': 'bg-green-100 text-green-700',
-    '已结束': 'bg-slate-100 text-slate-500'
+    '报名未开始': 'bg-slate-100 text-slate-700',
+    '活动报名中': 'bg-blue-100 text-blue-700',
+    '活动未开始': 'bg-yellow-100 text-yellow-700',
+    '活动进行中': 'bg-green-100 text-green-700',
+    '活动已结束': 'bg-slate-100 text-slate-500'
   }
   return statusMap[status] || 'bg-slate-100 text-slate-700'
 }
@@ -69,8 +96,8 @@ const getStatusClass = (status) => {
 // 计算发布状态的显示样式
 const getPublishStatusClass = (status) => {
   const statusMap = {
-    '未发布': 'bg-yellow-100 text-yellow-700',
-    '已申报': 'bg-blue-100 text-blue-700',
+    '待申报': 'bg-yellow-100 text-yellow-700',
+    '待发布': 'bg-blue-100 text-blue-700',
     '已发布': 'bg-green-100 text-green-700',
     '已下架': 'bg-slate-100 text-slate-500'
   }
@@ -138,9 +165,9 @@ const unpublishActivity = async (activity) => {
   }
 }
 
-// 判断是否可以发布（已申报、未发布、已下架的活动可以发布）
+// 判断是否可以发布（待发布、已下架的活动可以发布）
 const canPublish = (activity) => {
-  return activity.fbZt === '已申报' || activity.fbZt === '未发布' || activity.fbZt === '已下架'
+  return activity.fbZt === '待发布' || activity.fbZt === '已下架'
 }
 
 // 判断是否可以下架（只有已发布的活动可以下架）
@@ -220,11 +247,11 @@ onMounted(() => {
                 <div class="flex-1">
                   <div class="flex items-center gap-3 mb-2">
                     <h3 class="font-semibold text-lg text-slate-900">{{ activity.hdMc }}</h3>
-                    <span :class="['px-3 py-1 rounded-full text-xs font-medium', getStatusClass(activity.hdZt)]">
-                      {{ activity.hdZt }}
+                    <span :class="['px-3 py-1 rounded-full text-xs font-medium', getStatusClass(computeStatus(activity))]">
+                      {{ computeStatus(activity) }}
                     </span>
                     <span :class="['px-3 py-1 rounded-full text-xs font-medium', getPublishStatusClass(activity.fbZt)]">
-                      {{ activity.fbZt || '未发布' }}
+                      {{ activity.fbZt || '待申报' }}
                     </span>
                   </div>
                   <p class="text-sm text-slate-600 mb-2">{{ activity.hdNr || '暂无描述' }}</p>
@@ -334,11 +361,11 @@ onMounted(() => {
           <div>
             <div class="flex items-center gap-3 mb-4">
               <h4 class="text-2xl font-bold text-slate-900">{{ selectedActivity.hdMc }}</h4>
-              <span :class="['px-3 py-1 rounded-full text-xs font-medium', getStatusClass(selectedActivity.hdZt)]">
-                {{ selectedActivity.hdZt }}
+              <span :class="['px-3 py-1 rounded-full text-xs font-medium', getStatusClass(computeStatus(selectedActivity))]">
+                {{ computeStatus(selectedActivity) }}
               </span>
               <span :class="['px-3 py-1 rounded-full text-xs font-medium', getPublishStatusClass(selectedActivity.fbZt)]">
-                {{ selectedActivity.fbZt || '未发布' }}
+                {{ selectedActivity.fbZt || '待申报' }}
               </span>
             </div>
           </div>

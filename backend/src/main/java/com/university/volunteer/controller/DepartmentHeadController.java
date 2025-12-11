@@ -117,12 +117,21 @@ public class DepartmentHeadController {
     }
 
     /**
-     * 申报活动（将活动状态从"未发布"改为"已申报"）
+     * 申报活动（将活动状态从"待申报"改为"待发布"）
      * @param activityId 活动编号
      */
     @PutMapping("/activity/{activityId}/submit")
     public Result<String> submitActivity(@PathVariable Integer activityId) {
         return departmentHeadService.submitActivity(activityId);
+    }
+
+    /**
+     * 撤销申报（将活动状态从"待发布"改回"待申报"）
+     * @param activityId 活动编号
+     */
+    @PutMapping("/activity/{activityId}/cancel-submit")
+    public Result<String> cancelSubmitActivity(@PathVariable Integer activityId) {
+        return departmentHeadService.cancelSubmitActivity(activityId);
     }
 
     /**

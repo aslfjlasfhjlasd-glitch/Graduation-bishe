@@ -1,20 +1,17 @@
 package com.university.volunteer.service;
 
 import com.university.volunteer.common.Result;
-import com.university.volunteer.entity.Academy;
-import com.university.volunteer.entity.ActivityRegistration;
-import com.university.volunteer.entity.DepartmentHead;
-import com.university.volunteer.entity.VolunteerActivity;
-import com.university.volunteer.mapper.AcademyMapper;
-import com.university.volunteer.mapper.DepartmentHeadMapper;
-import com.university.volunteer.mapper.StudentActivityMapper;
+import com.university.volunteer.entity.*;
+import com.university.volunteer.mapper.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class DepartmentHeadService {
@@ -27,6 +24,15 @@ public class DepartmentHeadService {
 
     @Autowired
     private StudentActivityMapper studentActivityMapper;
+    
+    @Autowired
+    private ActivityTagMapper activityTagMapper;
+    
+    @Autowired
+    private TagMapper tagMapper;
+    
+    @Autowired
+    private AdminMapper adminMapper;
 
     @Transactional(rollbackFor = Exception.class)
     public Result<String> auditRegistration(Integer registrationId, String status) {
@@ -184,12 +190,46 @@ public class DepartmentHeadService {
     }
 
     /**
-     * 更新活动信息
+     * 更新活动信息（新增标签处理）
      */
     @Transactional(rollbackFor = Exception.class)
     public Result<String> updateActivity(VolunteerActivity activity) {
         if (activity.getHdBh() == null) {
             return Result.error("活动编号不能为空");
+        }
+        
+        // 处理标签更新
+        if (activity.getTagIds() != null && !activity.getTagIds().isEmpty()) {
+            // 1. 删除活动的所有旧标签关联
+            activityTagMapper.deleteByActivityId(activity.getHdBh());
+            
+            // 2. 批量插入新的标签关联
+            List<ActivityTag> activityTags = new ArrayList<>();
+            for (Integer tagId : activity.getTagIds()) {
+                ActivityTag at = new ActivityTag();
+                at.setHdBh(activity.getHdBh());
+                at.setBqId(tagId);
+                activityTags.add(at);
+            }
+            if (!activityTags.isEmpty()) {
+                activityTagMapper.insertBatch(activityTags);
+            }
+            
+            // 3. 更新冗余字段（用于兼容和快速查询）
+            List<Tag> tags = tagMapper.findByIds(activity.getTagIds());
+            if (tags != null && !tags.isEmpty()) {
+                // 分离活动标签和技能要求
+                String hdBq = tags.stream()
+                        .filter(tag -> tag.getBqLx() == 1)
+                        .map(Tag::getBqMc)
+                        .collect(Collectors.joining(","));
+                String jnYq = tags.stream()
+                        .filter(tag -> tag.getBqLx() == 2)
+                        .map(Tag::getBqMc)
+                        .collect(Collectors.joining(","));
+                activity.setHdBq(hdBq.isEmpty() ? null : hdBq);
+                activity.setJnYq(jnYq.isEmpty() ? null : jnYq);
+            }
         }
         
         int rows = studentActivityMapper.updateActivity(activity);
@@ -246,7 +286,7 @@ public class DepartmentHeadService {
     }
 
     /**
-     * 申报活动（将活动状态从"未发布"改为"已申报"）
+     * 申报活动（将活动状态从"待申报"改为"待发布"）
      */
     @Transactional(rollbackFor = Exception.class)
     public Result<String> submitActivity(Integer activityId) {
@@ -262,11 +302,11 @@ public class DepartmentHeadService {
             }
             
             String currentStatus = activity.getFbZt();
-            if (!"未发布".equals(currentStatus)) {
-                return Result.error("只能申报状态为'未发布'的活动");
+            if (!"待申报".equals(currentStatus)) {
+                return Result.error("只能申报状态为'待申报'的活动");
             }
             
-            int rows = studentActivityMapper.updateActivityPublishStatus(activityId, "已申报");
+            int rows = studentActivityMapper.updateActivityPublishStatus(activityId, "待发布");
             if (rows > 0) {
                 return Result.success("活动已申报，等待管理员审核发布");
             } else {
@@ -279,31 +319,83 @@ public class DepartmentHeadService {
     }
 
     /**
-     * 创建新活动
+     * 撤销申报（将活动状态从"待发布"改回"待申报"）
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public Result<String> cancelSubmitActivity(Integer activityId) {
+        if (activityId == null) {
+            return Result.error("活动编号不能为空");
+        }
+        
+        try {
+            // 先查询活动当前状态
+            VolunteerActivity activity = studentActivityMapper.findActivityById(activityId);
+            if (activity == null) {
+                return Result.error("活动不存在");
+            }
+            
+            String currentStatus = activity.getFbZt();
+            if (!"待发布".equals(currentStatus)) {
+                return Result.error("只能撤销状态为'待发布'的活动");
+            }
+            
+            int rows = studentActivityMapper.updateActivityPublishStatus(activityId, "待申报");
+            if (rows > 0) {
+                return Result.success("已撤销申报");
+            } else {
+                return Result.error("撤销申报失败");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("撤销申报失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 创建新活动（新增标签处理）
      */
     @Transactional(rollbackFor = Exception.class)
     public Result<VolunteerActivity> createActivity(String username, VolunteerActivity activity) {
-        // 1. 获取负责人信息以确定发起单位
-        Result<Map<String, Object>> headInfoResult = getHeadInfo(username);
-        if (headInfoResult.getCode() != 200) {
-            return Result.error("获取负责人信息失败");
+        // 1. 判断用户是否是管理员
+        boolean isAdmin = false;
+        String department = null;
+        
+        Admin admin = adminMapper.findByUsername(username);
+        if (admin != null) {
+            isAdmin = true;
+            // 管理员使用"校级管理"作为发起单位
+            department = "校级管理";
+        } else {
+            // 2. 获取负责人信息以确定发起单位
+            Result<Map<String, Object>> headInfoResult = getHeadInfo(username);
+            if (headInfoResult.getCode() != 200) {
+                return Result.error("获取负责人信息失败");
+            }
+
+            department = (String) headInfoResult.getData().get("department");
+            if (department == null || department.isEmpty()) {
+                return Result.error("未找到部门/学院信息");
+            }
         }
 
-        String department = (String) headInfoResult.getData().get("department");
-        if (department == null || department.isEmpty()) {
-            return Result.error("未找到部门/学院信息");
-        }
-
-        // 2. 设置活动发起单位
+        // 3. 设置活动发起单位
         activity.setHdFqDw(department);
         
-        // 3. 设置默认值
+        // 4. 设置默认值
         activity.setYbmRs(0); // 已报名人数初始为0
         activity.setHdZt("未开始"); // 活动状态初始为未开始
-        activity.setFbZt("未发布"); // 发布状态初始为未发布
+        
+        // 根据用户类型设置不同的默认发布状态
+        // 管理员创建的活动默认为"待发布"，负责人创建的活动默认为"待申报"
+        if (isAdmin) {
+            activity.setFbZt("待发布"); // 管理员创建的活动默认待发布
+        } else {
+            activity.setFbZt("待申报"); // 负责人创建的活动默认待申报
+        }
+        
         activity.setBbh(0); // 乐观锁版本号初始为0
 
-        // 4. 验证必填字段
+        // 5. 验证必填字段
         if (activity.getHdMc() == null || activity.getHdMc().trim().isEmpty()) {
             return Result.error("活动名称不能为空");
         }
@@ -323,7 +415,7 @@ public class DepartmentHeadService {
             return Result.error("活动时间不能为空");
         }
 
-        // 5. 验证时间逻辑
+        // 6. 验证时间逻辑
         if (activity.getBmKssj().after(activity.getBmJssj())) {
             return Result.error("报名开始时间不能晚于结束时间");
         }
@@ -334,9 +426,39 @@ public class DepartmentHeadService {
             return Result.error("报名结束时间不能晚于活动开始时间");
         }
 
-        // 6. 插入数据库
+        // 7. 处理标签（在插入活动之前准备冗余字段）
+        if (activity.getTagIds() != null && !activity.getTagIds().isEmpty()) {
+            List<Tag> tags = tagMapper.findByIds(activity.getTagIds());
+            if (tags != null && !tags.isEmpty()) {
+                String hdBq = tags.stream()
+                        .filter(tag -> tag.getBqLx() == 1)
+                        .map(Tag::getBqMc)
+                        .collect(Collectors.joining(","));
+                String jnYq = tags.stream()
+                        .filter(tag -> tag.getBqLx() == 2)
+                        .map(Tag::getBqMc)
+                        .collect(Collectors.joining(","));
+                activity.setHdBq(hdBq.isEmpty() ? null : hdBq);
+                activity.setJnYq(jnYq.isEmpty() ? null : jnYq);
+            }
+        }
+
+        // 8. 插入活动到数据库
         int rows = studentActivityMapper.insertActivity(activity);
         if (rows > 0) {
+            // 9. 插入标签关联
+            if (activity.getTagIds() != null && !activity.getTagIds().isEmpty()) {
+                List<ActivityTag> activityTags = new ArrayList<>();
+                for (Integer tagId : activity.getTagIds()) {
+                    ActivityTag at = new ActivityTag();
+                    at.setHdBh(activity.getHdBh()); // 使用自动生成的活动编号
+                    at.setBqId(tagId);
+                    activityTags.add(at);
+                }
+                if (!activityTags.isEmpty()) {
+                    activityTagMapper.insertBatch(activityTags);
+                }
+            }
             return Result.success(activity);
         } else {
             return Result.error("创建活动失败");

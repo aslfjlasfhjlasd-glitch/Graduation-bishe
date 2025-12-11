@@ -22,16 +22,8 @@ public interface StudentActivityMapper {
     List<ActivityPerformanceDTO> selectPerformanceByStudentId(String studentId);
 
     /**
-     * 根据ID获取活动信息
+     * 根据ID获取活动信息（带标签，由XML实现）
      */
-    @Select("SELECT HD_BH as hdBh, HD_MC as hdMc, " +
-            "CONCAT(DATE_FORMAT(BM_KSSJ, '%Y-%m-%d %H:%i'), '至', DATE_FORMAT(BM_JSSJ, '%Y-%m-%d %H:%i')) as bmSj, " +
-            "CONCAT(DATE_FORMAT(HD_KSSJ, '%Y-%m-%d %H:%i'), '-', DATE_FORMAT(HD_JSSJ, '%Y-%m-%d %H:%i')) as hdSj, " +
-            "BM_KSSJ as bmKssj, BM_JSSJ as bmJssj, HD_KSSJ as hdKssj, HD_JSSJ as hdJssj, " +
-            "HD_NR as hdNr, " +
-            "HD_DD as hdDd, ZM_RS as zmRs, HDXQ as hdXq, " +
-            "HD_BZ as hdBz, HD_FQ_DW as hdFqDw, HD_ZT as hdZt, FB_ZT as fbZt " +
-            "FROM t_zyhd WHERE HD_BH = #{activityId}")
     VolunteerActivity findActivityById(Integer activityId);
 
     /**
@@ -66,16 +58,8 @@ public interface StudentActivityMapper {
     int deleteRegistration(@Param("studentId") String studentId, @Param("activityId") Integer activityId);
 
     /**
-     * 根据活动发起单位查询活动列表
+     * 根据活动发起单位查询活动列表（带标签，由XML实现）
      */
-    @Select("SELECT HD_BH as hdBh, HD_MC as hdMc, " +
-            "CONCAT(DATE_FORMAT(BM_KSSJ, '%Y-%m-%d %H:%i'), '至', DATE_FORMAT(BM_JSSJ, '%Y-%m-%d %H:%i')) as bmSj, " +
-            "CONCAT(DATE_FORMAT(HD_KSSJ, '%Y-%m-%d %H:%i'), '-', DATE_FORMAT(HD_JSSJ, '%Y-%m-%d %H:%i')) as hdSj, " +
-            "BM_KSSJ as bmKssj, BM_JSSJ as bmJssj, HD_KSSJ as hdKssj, HD_JSSJ as hdJssj, " +
-            "HD_NR as hdNr, HD_DD as hdDd, ZM_RS as zmRs, YBM_RS as ybmRs, " +
-            "HD_BQ as hdBq, JN_YQ as jnYq, ZY_XZ as zyXz, HDXQ as hdXq, " +
-            "HD_BZ as hdBz, HD_FQ_DW as hdFqDw, HD_ZT as hdZt, FB_ZT as fbZt " +
-            "FROM t_zyhd WHERE HD_FQ_DW = #{department} ORDER BY HD_BH DESC")
     List<VolunteerActivity> findActivitiesByDepartment(@Param("department") String department);
 
     /**
@@ -125,20 +109,22 @@ public interface StudentActivityMapper {
     @Insert("INSERT INTO t_zyhd (HD_MC, BM_KSSJ, BM_JSSJ, HD_KSSJ, HD_JSSJ, HD_NR, HD_DD, " +
             "ZM_RS, YBM_RS, HD_BQ, JN_YQ, ZY_XZ, HDXQ, HD_BZ, HD_FQ_DW, HD_ZT, FB_ZT, BBH) " +
             "VALUES (#{hdMc}, #{bmKssj}, #{bmJssj}, #{hdKssj}, #{hdJssj}, #{hdNr}, #{hdDd}, " +
-            "#{zmRs}, 0, #{hdBq}, #{jnYq}, #{zyXz}, #{hdXq}, #{hdBz}, #{hdFqDw}, '未开始', '未发布', 0)")
+            "#{zmRs}, 0, #{hdBq}, #{jnYq}, #{zyXz}, #{hdXq}, #{hdBz}, #{hdFqDw}, '未开始', #{fbZt}, 0)")
     @Options(useGeneratedKeys = true, keyProperty = "hdBh")
     int insertActivity(VolunteerActivity activity);
 
     /**
-     * 获取所有活动列表（管理员使用）
+     * 获取所有活动列表（管理员使用，带标签，由XML实现）
      */
-    @Select("SELECT HD_BH as hdBh, HD_MC as hdMc, " +
-            "CONCAT(DATE_FORMAT(BM_KSSJ, '%Y-%m-%d %H:%i'), '至', DATE_FORMAT(BM_JSSJ, '%Y-%m-%d %H:%i')) as bmSj, " +
-            "CONCAT(DATE_FORMAT(HD_KSSJ, '%Y-%m-%d %H:%i'), '-', DATE_FORMAT(HD_JSSJ, '%Y-%m-%d %H:%i')) as hdSj, " +
-            "BM_KSSJ as bmKssj, BM_JSSJ as bmJssj, HD_KSSJ as hdKssj, HD_JSSJ as hdJssj, " +
-            "HD_NR as hdNr, HD_DD as hdDd, ZM_RS as zmRs, YBM_RS as ybmRs, " +
-            "HD_BQ as hdBq, JN_YQ as jnYq, ZY_XZ as zyXz, HDXQ as hdXq, " +
-            "HD_BZ as hdBz, HD_FQ_DW as hdFqDw, HD_ZT as hdZt, FB_ZT as fbZt " +
-            "FROM t_zyhd ORDER BY HD_BH DESC")
     List<VolunteerActivity> findAllActivities();
+    
+    /**
+     * 根据标签ID查询活动列表（新增：用于标签筛选）
+     */
+    List<VolunteerActivity> findActivitiesByTagId(@Param("tagId") Integer tagId);
+    
+    /**
+     * 根据多个标签ID查询活动列表（新增：用于智能推荐）
+     */
+    List<VolunteerActivity> findActivitiesByTagIds(@Param("tagIds") List<Integer> tagIds);
 }

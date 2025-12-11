@@ -16,6 +16,10 @@
         <result property="xqBq" column="XQ_BQ"/>
         <result property="jnBq" column="JN_BQ"/>
         <result property="grjj" column="GRJJ"/>
+        <!-- 关联查询标签列表 -->
+        <collection property="tags"
+                    column="XS_XH"
+                    select="com.university.volunteer.mapper.StudentTagMapper.findTagsByStudentId"/>
     </resultMap>
 
     <!-- 根据用户名查询学生（登录用） -->

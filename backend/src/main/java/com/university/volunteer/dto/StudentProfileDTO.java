@@ -1,21 +1,19 @@
-package com.university.volunteer.entity;
+package com.university.volunteer.dto;
 
 import java.util.List;
 
 /**
- * 学生实体类
- * 对应数据库表: t_xs
+ * 学生档案数据传输对象
+ * 用于学生信息的输入和输出
  */
-public class Student {
-    // 学号 (主键)
+public class StudentProfileDTO {
+    // 学号
     private Integer xsXh;
     // 姓名
     private String xsXm;
-    // 密码
-    private String xsMm;
     // 联系电话
     private String xsDh;
-    // 性别 (1-男, 0-女)
+    // 性别
     private String xsXb;
     // 政治面貌
     private String zzmm;
@@ -25,17 +23,18 @@ public class Student {
     private Integer bjBh;
     // 班级名称
     private String bjMc;
-    // 兴趣标签（字符串，用于兼容和冗余存储）
-    private String xqBq;
-    // 技能标签（字符串，用于兼容和冗余存储）
-    private String jnBq;
     // 个人简介
     private String grjj;
     
-    // 新增：标签列表（用于结构化数据）
-    private List<Tag> tags;
-    // 新增：标签ID列表（用于前后端交互）
+    // 兴趣标签（字符串，兼容旧版）
+    private String xqBq;
+    // 技能标签（字符串，兼容旧版）
+    private String jnBq;
+    
+    // 标签ID列表（新版，用于提交）
     private List<Integer> tagIds;
+    // 标签详情列表（新版，用于展示）
+    private List<TagDTO> tags;
 
     public Integer getXsXh() {
         return xsXh;
@@ -51,14 +50,6 @@ public class Student {
 
     public void setXsXm(String xsXm) {
         this.xsXm = xsXm;
-    }
-
-    public String getXsMm() {
-        return xsMm;
-    }
-
-    public void setXsMm(String xsMm) {
-        this.xsMm = xsMm;
     }
 
     public String getXsDh() {
@@ -109,6 +100,14 @@ public class Student {
         this.bjMc = bjMc;
     }
 
+    public String getGrjj() {
+        return grjj;
+    }
+
+    public void setGrjj(String grjj) {
+        this.grjj = grjj;
+    }
+
     public String getXqBq() {
         return xqBq;
     }
@@ -125,27 +124,19 @@ public class Student {
         this.jnBq = jnBq;
     }
 
-    public String getGrjj() {
-        return grjj;
-    }
-
-    public void setGrjj(String grjj) {
-        this.grjj = grjj;
-    }
-
-    public List<Tag> getTags() {
-        return tags;
-    }
-
-    public void setTags(List<Tag> tags) {
-        this.tags = tags;
-    }
-
     public List<Integer> getTagIds() {
         return tagIds;
     }
 
     public void setTagIds(List<Integer> tagIds) {
         this.tagIds = tagIds;
+    }
+
+    public List<TagDTO> getTags() {
+        return tags;
+    }
+
+    public void setTags(List<TagDTO> tags) {
+        this.tags = tags;
     }
 }
