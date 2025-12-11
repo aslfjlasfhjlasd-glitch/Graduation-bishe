@@ -26,11 +26,11 @@ public interface StudentActivityMapper {
      */
     @Select("SELECT HD_BH as hdBh, HD_MC as hdMc, " +
             "CONCAT(DATE_FORMAT(BM_KSSJ, '%Y-%m-%d %H:%i'), '至', DATE_FORMAT(BM_JSSJ, '%Y-%m-%d %H:%i')) as bmSj, " +
-            "CONCAT(DATE_FORMAT(HD_KSSJ, '%Y-%m-%d %H:%i'), '-', DATE_FORMAT(HD_JSSJ, '%H:%i')) as hdSj, " +
+            "CONCAT(DATE_FORMAT(HD_KSSJ, '%Y-%m-%d %H:%i'), '-', DATE_FORMAT(HD_JSSJ, '%Y-%m-%d %H:%i')) as hdSj, " +
             "BM_KSSJ as bmKssj, BM_JSSJ as bmJssj, HD_KSSJ as hdKssj, HD_JSSJ as hdJssj, " +
             "HD_NR as hdNr, " +
             "HD_DD as hdDd, ZM_RS as zmRs, HDXQ as hdXq, " +
-            "HD_BZ as hdBz, HD_FQ_DW as hdFqDw, HD_ZT as hdZt " +
+            "HD_BZ as hdBz, HD_FQ_DW as hdFqDw, HD_ZT as hdZt, FB_ZT as fbZt " +
             "FROM t_zyhd WHERE HD_BH = #{activityId}")
     VolunteerActivity findActivityById(Integer activityId);
 
@@ -70,11 +70,11 @@ public interface StudentActivityMapper {
      */
     @Select("SELECT HD_BH as hdBh, HD_MC as hdMc, " +
             "CONCAT(DATE_FORMAT(BM_KSSJ, '%Y-%m-%d %H:%i'), '至', DATE_FORMAT(BM_JSSJ, '%Y-%m-%d %H:%i')) as bmSj, " +
-            "CONCAT(DATE_FORMAT(HD_KSSJ, '%Y-%m-%d %H:%i'), '-', DATE_FORMAT(HD_JSSJ, '%H:%i')) as hdSj, " +
+            "CONCAT(DATE_FORMAT(HD_KSSJ, '%Y-%m-%d %H:%i'), '-', DATE_FORMAT(HD_JSSJ, '%Y-%m-%d %H:%i')) as hdSj, " +
             "BM_KSSJ as bmKssj, BM_JSSJ as bmJssj, HD_KSSJ as hdKssj, HD_JSSJ as hdJssj, " +
             "HD_NR as hdNr, HD_DD as hdDd, ZM_RS as zmRs, YBM_RS as ybmRs, " +
             "HD_BQ as hdBq, JN_YQ as jnYq, ZY_XZ as zyXz, HDXQ as hdXq, " +
-            "HD_BZ as hdBz, HD_FQ_DW as hdFqDw, HD_ZT as hdZt " +
+            "HD_BZ as hdBz, HD_FQ_DW as hdFqDw, HD_ZT as hdZt, FB_ZT as fbZt " +
             "FROM t_zyhd WHERE HD_FQ_DW = #{department} ORDER BY HD_BH DESC")
     List<VolunteerActivity> findActivitiesByDepartment(@Param("department") String department);
 
@@ -90,4 +90,26 @@ public interface StudentActivityMapper {
             "WHERE a.HD_FQ_DW = #{department} " +
             "ORDER BY r.ID DESC")
     List<ActivityRegistration> findRegistrationsByDepartment(@Param("department") String department);
+
+    /**
+     * 更新活动信息
+     */
+    @Update("UPDATE t_zyhd SET HD_MC = #{hdMc}, HD_NR = #{hdNr}, HD_DD = #{hdDd}, " +
+            "BM_KSSJ = #{bmKssj}, BM_JSSJ = #{bmJssj}, HD_KSSJ = #{hdKssj}, HD_JSSJ = #{hdJssj}, " +
+            "ZM_RS = #{zmRs}, HD_BQ = #{hdBq}, JN_YQ = #{jnYq}, ZY_XZ = #{zyXz}, " +
+            "HDXQ = #{hdXq}, HD_BZ = #{hdBz} " +
+            "WHERE HD_BH = #{hdBh}")
+    int updateActivity(VolunteerActivity activity);
+
+    /**
+     * 删除活动
+     */
+    @Delete("DELETE FROM t_zyhd WHERE HD_BH = #{activityId}")
+    int deleteActivity(@Param("activityId") Integer activityId);
+
+    /**
+     * 更新活动发布状态
+     */
+    @Update("UPDATE t_zyhd SET FB_ZT = #{status} WHERE HD_BH = #{activityId}")
+    int updateActivityPublishStatus(@Param("activityId") Integer activityId, @Param("status") String status);
 }

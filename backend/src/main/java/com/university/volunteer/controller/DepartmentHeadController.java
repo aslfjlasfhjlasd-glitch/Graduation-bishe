@@ -1,6 +1,7 @@
 package com.university.volunteer.controller;
 
 import com.university.volunteer.common.Result;
+import com.university.volunteer.entity.VolunteerActivity;
 import com.university.volunteer.service.DepartmentHeadService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -76,5 +77,32 @@ public class DepartmentHeadController {
     @GetMapping("/registrations/{username}")
     public Result<?> getRegistrationsByHead(@PathVariable String username) {
         return departmentHeadService.getRegistrationsByHead(username);
+    }
+
+    /**
+     * 更新活动信息
+     * @param activity 活动信息
+     */
+    @PutMapping("/activity")
+    public Result<String> updateActivity(@RequestBody VolunteerActivity activity) {
+        return departmentHeadService.updateActivity(activity);
+    }
+
+    /**
+     * 删除活动
+     * @param activityId 活动编号
+     */
+    @DeleteMapping("/activity/{activityId}")
+    public Result<String> deleteActivity(@PathVariable Integer activityId) {
+        return departmentHeadService.deleteActivity(activityId);
+    }
+
+    /**
+     * 下架活动
+     * @param activityId 活动编号
+     */
+    @PutMapping("/activity/{activityId}/unpublish")
+    public Result<String> unpublishActivity(@PathVariable Integer activityId) {
+        return departmentHeadService.unpublishActivity(activityId);
     }
 }

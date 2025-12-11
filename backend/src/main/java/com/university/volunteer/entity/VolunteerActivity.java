@@ -37,6 +37,8 @@ public class VolunteerActivity {
     private String hdFqDw;
     // 活动状态
     private String hdZt;
+    // 发布状态
+    private String fbZt;
 
     public Integer getHdBh() {
         return hdBh;
@@ -156,5 +158,13 @@ public class VolunteerActivity {
 
     public void setHdZt(String hdZt) {
         this.hdZt = hdZt;
+    }
+
+    public String getFbZt() {
+        return fbZt;
+    }
+
+    public void setFbZt(String fbZt) {
+        this.fbZt = fbZt;
     }
 }
