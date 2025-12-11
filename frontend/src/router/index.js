@@ -17,7 +17,7 @@ const routes = [
     path: '/admin/dashboard',
     name: 'AdminDashboard',
     // 负责人管理端路由
-    component: () => import('../views/admin/Dashboard.vue')
+    component: () => import('../views/college-university-level-departments/Dashboard.vue')
   }
 ]
 
