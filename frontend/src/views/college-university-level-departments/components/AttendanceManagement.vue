@@ -1,8 +1,8 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import Button from '@/components/ui/button/button.vue'
-import { Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-vue-next'
+import { Clock, AlertCircle } from 'lucide-vue-next'
 import axios from 'axios'
 
 const registrations = ref([])
@@ -10,8 +10,9 @@ const loading = ref(false)
 const errorMessage = ref('')
 
 // 获取报名记录（用于考勤管理）
+// 获取报名记录（用于考勤管理）
 const fetchRegistrations = async () => {
-  const username = localStorage.getItem('adminUsername')
+  const username = localStorage.getItem('headUsername') // 修正：读取负责人账号
   if (!username) {
     errorMessage.value = '未找到登录信息，请重新登录'
     return
@@ -25,11 +26,12 @@ const fetchRegistrations = async () => {
     if (response.data.code === 200) {
       registrations.value = response.data.data || []
     } else {
+      // 显示后端返回的具体错误，如果后端报错“获取负责人信息失败”，这里会显示出来
       errorMessage.value = response.data.message || '获取数据失败'
     }
   } catch (error) {
     console.error('获取数据失败:', error)
-    errorMessage.value = '网络错误，请稍后重试'
+    errorMessage.value = '网络错误，请检查后端服务是否启动'
   } finally {
     loading.value = false
   }
@@ -50,16 +52,11 @@ const formatTime = (time) => {
 // 获取考勤状态样式
 const getAttendanceStatusClass = (status) => {
   switch (status) {
-    case '正常':
-      return 'bg-green-100 text-green-700'
-    case '迟到':
-      return 'bg-yellow-100 text-yellow-700'
-    case '早退':
-      return 'bg-orange-100 text-orange-700'
-    case '缺勤':
-      return 'bg-red-100 text-red-700'
-    default:
-      return 'bg-slate-100 text-slate-700'
+    case '正常': return 'bg-green-100 text-green-700'
+    case '迟到': return 'bg-yellow-100 text-yellow-700'
+    case '早退': return 'bg-orange-100 text-orange-700'
+    case '缺勤': return 'bg-red-100 text-red-700'
+    default: return 'bg-slate-100 text-slate-700'
   }
 }
 
@@ -72,7 +69,6 @@ onMounted(() => {
   <div class="space-y-6">
     <h2 class="text-2xl font-bold text-slate-900">考勤管理</h2>
 
-    <!-- 错误提示 -->
     <div v-if="errorMessage" class="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
       <AlertCircle class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
       <div class="flex-1">

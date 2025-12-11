@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import Button from '@/components/ui/button/button.vue'
 import { Award, AlertCircle } from 'lucide-vue-next'
@@ -9,9 +9,8 @@ const registrations = ref([])
 const loading = ref(false)
 const errorMessage = ref('')
 
-// 获取报名记录（用于工时学分确认）
 const fetchRegistrations = async () => {
-  const username = localStorage.getItem('adminUsername')
+  const username = localStorage.getItem('headUsername') // 修正
   if (!username) {
     errorMessage.value = '未找到登录信息，请重新登录'
     return
@@ -59,7 +58,6 @@ onMounted(() => {
   <div class="space-y-6">
     <h2 class="text-2xl font-bold text-slate-900">工时学分确认</h2>
 
-    <!-- 错误提示 -->
     <div v-if="errorMessage" class="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
       <AlertCircle class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
       <div class="flex-1">
