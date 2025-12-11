@@ -38,23 +38,23 @@ const isEvaluationOpen = ref(false)
 const activeMenu = ref('dashboard')
 
 // 从localStorage获取用户信息
-const adminName = ref(localStorage.getItem('adminName') || '负责人')
-const adminDepartment = ref(localStorage.getItem('adminDepartment') || '')
+const headName = ref(localStorage.getItem('headName') || '负责人')
+const headDepartment = ref(localStorage.getItem('headDepartment') || '')
 
 // 组件挂载时检查登录状态
 onMounted(() => {
-  const storedName = localStorage.getItem('adminName')
-  const storedDepartment = localStorage.getItem('adminDepartment')
+  const storedName = localStorage.getItem('headName')
+  const storedDepartment = localStorage.getItem('headDepartment')
   
   if (storedName) {
-    adminName.value = storedName
+    headName.value = storedName
   }
   if (storedDepartment) {
-    adminDepartment.value = storedDepartment
+    headDepartment.value = storedDepartment
   }
   
   const userRole = localStorage.getItem('userRole')
-  if (!userRole || userRole !== 'admin') {
+  if (!userRole || userRole !== 'head') {
     router.push('/')
   }
 })
@@ -73,9 +73,9 @@ const handleMenuClick = (menuKey) => {
 
 const handleLogout = () => {
   if (confirm('确定要退出登录吗？')) {
-    localStorage.removeItem('adminName')
-    localStorage.removeItem('adminDepartment')
-    localStorage.removeItem('adminUsername')
+    localStorage.removeItem('headName')
+    localStorage.removeItem('headDepartment')
+    localStorage.removeItem('headUsername')
     localStorage.removeItem('userRole')
     router.push('/')
   }
@@ -183,11 +183,11 @@ const handleLogout = () => {
         <div class="flex items-center gap-6">
           <div class="flex items-center gap-3 pl-4 border-l border-slate-100">
             <div class="flex flex-col items-end mr-1">
-              <span class="text-sm font-semibold text-slate-700">{{ adminName }}</span>
-              <span class="text-xs text-slate-400">{{ adminDepartment || '负责人账号' }}</span>
+              <span class="text-sm font-semibold text-slate-700">{{ headName }}</span>
+              <span class="text-xs text-slate-400">{{ headDepartment || '负责人账号' }}</span>
             </div>
             <div class="w-9 h-9 rounded-full bg-teal-50 flex items-center justify-center text-teal-600 font-bold text-sm border-2 border-white shadow-sm ring-1 ring-slate-100">
-              {{ adminName.charAt(0) }}
+              {{ headName.charAt(0) }}
             </div>
           </div>
           

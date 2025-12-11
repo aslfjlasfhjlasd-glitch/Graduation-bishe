@@ -120,7 +120,47 @@ public class DepartmentHeadService {
 
         // 根据部门/学院名称查询活动
         List<VolunteerActivity> activities = studentActivityMapper.findActivitiesByDepartment(department);
+        
+        // 动态更新活动状态
+        java.util.Date now = new java.util.Date();
+        for (VolunteerActivity activity : activities) {
+            String newStatus = calculateActivityStatus(activity, now);
+            // 如果状态发生变化，更新数据库
+            if (!newStatus.equals(activity.getHdZt())) {
+                activity.setHdZt(newStatus);
+                studentActivityMapper.updateActivityStatus(activity.getHdBh(), newStatus);
+            }
+        }
+        
         return Result.success(activities);
+    }
+
+    /**
+     * 根据当前时间计算活动状态
+     */
+    private String calculateActivityStatus(VolunteerActivity activity, java.util.Date now) {
+        if (activity.getBmKssj() == null || activity.getBmJssj() == null ||
+            activity.getHdKssj() == null || activity.getHdJssj() == null) {
+            return "未开始";
+        }
+
+        // 判断活动状态
+        if (now.before(activity.getBmKssj())) {
+            // 当前时间在报名开始之前
+            return "未开始";
+        } else if (now.after(activity.getBmKssj()) && now.before(activity.getBmJssj())) {
+            // 当前时间在报名时间段内
+            return "报名中";
+        } else if (now.after(activity.getHdKssj()) && now.before(activity.getHdJssj())) {
+            // 当前时间在活动时间段内
+            return "进行中";
+        } else if (now.after(activity.getHdJssj())) {
+            // 当前时间在活动结束之后
+            return "已结束";
+        } else {
+            // 报名已结束但活动未开始
+            return "未开始";
+        }
     }
 
     /**
@@ -197,19 +237,109 @@ public class DepartmentHeadService {
     }
 
     /**
-     * 上架活动（更新发布状态为"已发布"）
+     * 上架活动（已废弃，负责人不再有此权限）
      */
+    @Deprecated
     @Transactional(rollbackFor = Exception.class)
     public Result<String> publishActivity(Integer activityId) {
+        return Result.error("负责人无权限发布活动，请申报后由管理员发布");
+    }
+
+    /**
+     * 申报活动（将活动状态从"未发布"改为"已申报"）
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public Result<String> submitActivity(Integer activityId) {
         if (activityId == null) {
             return Result.error("活动编号不能为空");
         }
         
-        int rows = studentActivityMapper.updateActivityPublishStatus(activityId, "已发布");
+        try {
+            // 先查询活动当前状态
+            VolunteerActivity activity = studentActivityMapper.findActivityById(activityId);
+            if (activity == null) {
+                return Result.error("活动不存在");
+            }
+            
+            String currentStatus = activity.getFbZt();
+            if (!"未发布".equals(currentStatus)) {
+                return Result.error("只能申报状态为'未发布'的活动");
+            }
+            
+            int rows = studentActivityMapper.updateActivityPublishStatus(activityId, "已申报");
+            if (rows > 0) {
+                return Result.success("活动已申报，等待管理员审核发布");
+            } else {
+                return Result.error("申报失败");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("申报失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 创建新活动
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public Result<VolunteerActivity> createActivity(String username, VolunteerActivity activity) {
+        // 1. 获取负责人信息以确定发起单位
+        Result<Map<String, Object>> headInfoResult = getHeadInfo(username);
+        if (headInfoResult.getCode() != 200) {
+            return Result.error("获取负责人信息失败");
+        }
+
+        String department = (String) headInfoResult.getData().get("department");
+        if (department == null || department.isEmpty()) {
+            return Result.error("未找到部门/学院信息");
+        }
+
+        // 2. 设置活动发起单位
+        activity.setHdFqDw(department);
+        
+        // 3. 设置默认值
+        activity.setYbmRs(0); // 已报名人数初始为0
+        activity.setHdZt("未开始"); // 活动状态初始为未开始
+        activity.setFbZt("未发布"); // 发布状态初始为未发布
+        activity.setBbh(0); // 乐观锁版本号初始为0
+
+        // 4. 验证必填字段
+        if (activity.getHdMc() == null || activity.getHdMc().trim().isEmpty()) {
+            return Result.error("活动名称不能为空");
+        }
+        if (activity.getHdNr() == null || activity.getHdNr().trim().isEmpty()) {
+            return Result.error("活动内容不能为空");
+        }
+        if (activity.getHdDd() == null || activity.getHdDd().trim().isEmpty()) {
+            return Result.error("活动地点不能为空");
+        }
+        if (activity.getZmRs() == null || activity.getZmRs() <= 0) {
+            return Result.error("招募人数必须大于0");
+        }
+        if (activity.getBmKssj() == null || activity.getBmJssj() == null) {
+            return Result.error("报名时间不能为空");
+        }
+        if (activity.getHdKssj() == null || activity.getHdJssj() == null) {
+            return Result.error("活动时间不能为空");
+        }
+
+        // 5. 验证时间逻辑
+        if (activity.getBmKssj().after(activity.getBmJssj())) {
+            return Result.error("报名开始时间不能晚于结束时间");
+        }
+        if (activity.getHdKssj().after(activity.getHdJssj())) {
+            return Result.error("活动开始时间不能晚于结束时间");
+        }
+        if (activity.getBmJssj().after(activity.getHdKssj())) {
+            return Result.error("报名结束时间不能晚于活动开始时间");
+        }
+
+        // 6. 插入数据库
+        int rows = studentActivityMapper.insertActivity(activity);
         if (rows > 0) {
-            return Result.success("活动已发布");
+            return Result.success(activity);
         } else {
-            return Result.error("发布失败，活动不存在");
+            return Result.error("创建活动失败");
         }
     }
 }

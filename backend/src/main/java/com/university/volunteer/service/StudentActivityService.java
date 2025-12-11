@@ -93,20 +93,9 @@ public class StudentActivityService {
         }
 
         // 5. 检查剩余名额
-        // 解析 ZM_RS (招募人数)
-        int maxCapacity = 0;
-        try {
-            String zmRs = activity.getZmRs();
-            if (zmRs != null) {
-                // 尝试提取数字，例如 "35人" -> 35
-                String numStr = zmRs.replaceAll("[^0-9]", "");
-                if (!numStr.isEmpty()) {
-                    maxCapacity = Integer.parseInt(numStr);
-                }
-            }
-        } catch (Exception e) {
-            // 解析失败，默认为0 (或者视为无限? 视业务而定，为了安全起见，如果解析不到数字，可能需要人工干预)
-            // 这里简单处理：如果解析出数字 > 0，则校验；否则忽略名额限制(如 "若干")
+        Integer maxCapacity = activity.getZmRs();
+        if (maxCapacity == null) {
+            maxCapacity = 0;
         }
 
         int currentRegistered = studentActivityMapper.countRegistrationsByActivityId(activityId);

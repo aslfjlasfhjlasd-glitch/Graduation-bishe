@@ -27,8 +27,10 @@ public class VolunteerActivity {
     private String hdNr;
     // 活动地点
     private String hdDd;
-    // 招募人数 (字符串，如 "35人")
-    private String zmRs;
+    // 招募人数 (整数)
+    private Integer zmRs;
+    // 已报名人数
+    private Integer ybmRs;
     // 活动需求
     private String hdXq;
     // 活动保障
@@ -39,6 +41,14 @@ public class VolunteerActivity {
     private String hdZt;
     // 发布状态
     private String fbZt;
+    // 活动标签
+    private String hdBq;
+    // 技能要求
+    private String jnYq;
+    // 专业限制
+    private String zyXz;
+    // 乐观锁版本号
+    private Integer bbh;
 
     public Integer getHdBh() {
         return hdBh;
@@ -120,12 +130,20 @@ public class VolunteerActivity {
         this.hdDd = hdDd;
     }
 
-    public String getZmRs() {
+    public Integer getZmRs() {
         return zmRs;
     }
 
-    public void setZmRs(String zmRs) {
+    public void setZmRs(Integer zmRs) {
         this.zmRs = zmRs;
+    }
+
+    public Integer getYbmRs() {
+        return ybmRs;
+    }
+
+    public void setYbmRs(Integer ybmRs) {
+        this.ybmRs = ybmRs;
     }
 
     public String getHdXq() {
@@ -166,5 +184,37 @@ public class VolunteerActivity {
 
     public void setFbZt(String fbZt) {
         this.fbZt = fbZt;
+    }
+
+    public String getHdBq() {
+        return hdBq;
+    }
+
+    public void setHdBq(String hdBq) {
+        this.hdBq = hdBq;
+    }
+
+    public String getJnYq() {
+        return jnYq;
+    }
+
+    public void setJnYq(String jnYq) {
+        this.jnYq = jnYq;
+    }
+
+    public String getZyXz() {
+        return zyXz;
+    }
+
+    public void setZyXz(String zyXz) {
+        this.zyXz = zyXz;
+    }
+
+    public Integer getBbh() {
+        return bbh;
+    }
+
+    public void setBbh(Integer bbh) {
+        this.bbh = bbh;
     }
 }

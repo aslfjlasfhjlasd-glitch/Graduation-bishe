@@ -47,33 +47,8 @@ const handleLogin = async (role) => {
   // 调用登录API
   const result = await login(username.value, password.value, role);
   if (result.code === 200) {
-    // 登录成功，直接跳转
+    // 登录成功
     console.log('User data:', result.data);
-
-    // 保存用户信息到localStorage
-    if (role === 'student' && result.data.xsXh) {
-      localStorage.setItem('studentId', result.data.xsXh);
-      localStorage.setItem('studentName', result.data.xsXm || '');
-      localStorage.setItem('userRole', 'student');
-    } else if (role === 'head') {
-      // 学院/部门负责人登录（可能是校级部门负责人或学院负责人）
-      if (result.data.xjbmfzrXm) {
-        // 校级部门负责人
-        localStorage.setItem('adminName', result.data.xjbmfzrXm || '负责人');
-        localStorage.setItem('adminDepartment', result.data.xjbmMc || '');
-        localStorage.setItem('adminUsername', result.data.xjbmfzrZh || '');
-      } else if (result.data.xyZh) {
-        // 学院负责人（通过xyZh判断是学院账号）
-        localStorage.setItem('adminName', result.data.fzrXm || '负责人');
-        localStorage.setItem('adminDepartment', result.data.xyMc || '');
-        localStorage.setItem('adminUsername', result.data.xyZh || '');
-      }
-      localStorage.setItem('userRole', 'admin');
-    } else if (role === 'admin' && result.data.glyMc) {
-      // 管理员登录
-      localStorage.setItem('adminName', result.data.glyMc || '管理员');
-      localStorage.setItem('userRole', 'admin');
-    }
 
     // 处理记住密码逻辑
     if (rememberMe.value) {
@@ -86,16 +61,35 @@ const handleLogin = async (role) => {
     } else {
       localStorage.removeItem('loginInfo')
     }
-    
-    // 登录成功后的页面跳转逻辑
+
+    // 根据角色处理登录后的逻辑
     if (role === 'student') {
+      // 学生登录：保存信息并跳转
+      localStorage.setItem('studentId', result.data.xsXh);
+      localStorage.setItem('studentName', result.data.xsXm || '');
+      localStorage.setItem('userRole', 'student');
       router.push('/student/dashboard');
-    } else if (role === 'head' || role === 'admin') {
-      // 部门负责人和管理员跳转到管理端
+    } else if (role === 'head') {
+      // 学院/部门负责人登录：保存信息并跳转
+      if (result.data.xjbmfzrXm) {
+        // 校级部门负责人
+        localStorage.setItem('headName', result.data.xjbmfzrXm || '负责人');
+        localStorage.setItem('headDepartment', result.data.xjbmMc || '');
+        localStorage.setItem('headUsername', result.data.xjbmfzrZh || '');
+      } else if (result.data.xyZh) {
+        // 学院负责人（通过xyZh判断是学院账号）
+        localStorage.setItem('headName', result.data.fzrXm || '负责人');
+        localStorage.setItem('headDepartment', result.data.xyMc || '');
+        localStorage.setItem('headUsername', result.data.xyZh || '');
+      }
+      localStorage.setItem('userRole', 'head');
+      router.push('/head/dashboard');
+    } else if (role === 'admin') {
+      // 超级管理员登录：保存信息并跳转到管理员端
+      localStorage.setItem('adminName', result.data.glyMc || '管理员');
+      localStorage.setItem('adminUsername', result.data.glyZh || '');
+      localStorage.setItem('userRole', 'superadmin');
       router.push('/admin/dashboard');
-    } else {
-      // 默认跳转
-      router.push('/student/dashboard');
     }
   } else {
     // 登录失败，显示错误信息

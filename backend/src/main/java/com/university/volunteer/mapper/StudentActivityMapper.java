@@ -112,4 +112,33 @@ public interface StudentActivityMapper {
      */
     @Update("UPDATE t_zyhd SET FB_ZT = #{status} WHERE HD_BH = #{activityId}")
     int updateActivityPublishStatus(@Param("activityId") Integer activityId, @Param("status") String status);
+
+    /**
+     * 更新活动状态
+     */
+    @Update("UPDATE t_zyhd SET HD_ZT = #{status} WHERE HD_BH = #{activityId}")
+    int updateActivityStatus(@Param("activityId") Integer activityId, @Param("status") String status);
+
+    /**
+     * 插入新活动
+     */
+    @Insert("INSERT INTO t_zyhd (HD_MC, BM_KSSJ, BM_JSSJ, HD_KSSJ, HD_JSSJ, HD_NR, HD_DD, " +
+            "ZM_RS, YBM_RS, HD_BQ, JN_YQ, ZY_XZ, HDXQ, HD_BZ, HD_FQ_DW, HD_ZT, FB_ZT, BBH) " +
+            "VALUES (#{hdMc}, #{bmKssj}, #{bmJssj}, #{hdKssj}, #{hdJssj}, #{hdNr}, #{hdDd}, " +
+            "#{zmRs}, 0, #{hdBq}, #{jnYq}, #{zyXz}, #{hdXq}, #{hdBz}, #{hdFqDw}, '未开始', '未发布', 0)")
+    @Options(useGeneratedKeys = true, keyProperty = "hdBh")
+    int insertActivity(VolunteerActivity activity);
+
+    /**
+     * 获取所有活动列表（管理员使用）
+     */
+    @Select("SELECT HD_BH as hdBh, HD_MC as hdMc, " +
+            "CONCAT(DATE_FORMAT(BM_KSSJ, '%Y-%m-%d %H:%i'), '至', DATE_FORMAT(BM_JSSJ, '%Y-%m-%d %H:%i')) as bmSj, " +
+            "CONCAT(DATE_FORMAT(HD_KSSJ, '%Y-%m-%d %H:%i'), '-', DATE_FORMAT(HD_JSSJ, '%Y-%m-%d %H:%i')) as hdSj, " +
+            "BM_KSSJ as bmKssj, BM_JSSJ as bmJssj, HD_KSSJ as hdKssj, HD_JSSJ as hdJssj, " +
+            "HD_NR as hdNr, HD_DD as hdDd, ZM_RS as zmRs, YBM_RS as ybmRs, " +
+            "HD_BQ as hdBq, JN_YQ as jnYq, ZY_XZ as zyXz, HDXQ as hdXq, " +
+            "HD_BZ as hdBz, HD_FQ_DW as hdFqDw, HD_ZT as hdZt, FB_ZT as fbZt " +
+            "FROM t_zyhd ORDER BY HD_BH DESC")
+    List<VolunteerActivity> findAllActivities();
 }

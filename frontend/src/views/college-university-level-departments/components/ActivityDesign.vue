@@ -3,16 +3,22 @@ import { ref, onMounted, computed } from 'vue'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import Button from '@/components/ui/button/button.vue'
 import Input from '@/components/ui/input/Input.vue'
-import { Plus, Edit, Trash2, Calendar, MapPin, Users, AlertCircle, X, Archive, Upload } from 'lucide-vue-next'
+import { Plus, Edit, Trash2, Calendar, MapPin, Users, AlertCircle, X, Archive, Upload, CheckCircle } from 'lucide-vue-next'
 import axios from 'axios'
 
 const activities = ref([])
 const loading = ref(false)
 const errorMessage = ref('')
 const showEditDialog = ref(false)
+const showCreateDialog = ref(false)
 const editingActivity = ref(null)
+const newActivity = ref(null)
 const successMessage = ref('')
 let messageTimer = null
+
+// 判断当前用户角色
+const userRole = ref(localStorage.getItem('userRole') || 'head')
+const isAdmin = computed(() => userRole.value === 'superadmin')
 
 // 显示消息并自动隐藏
 const showMessage = (type, message) => {
@@ -36,17 +42,25 @@ const showMessage = (type, message) => {
 
 // 获取活动列表
 const fetchActivities = async () => {
-  const username = localStorage.getItem('adminUsername')
-  if (!username) {
-    errorMessage.value = '未找到登录信息，请重新登录'
-    return
-  }
-
   loading.value = true
   errorMessage.value = ''
 
   try {
-    const response = await axios.get(`http://localhost:8080/api/head/activities/${username}`)
+    let response
+    if (isAdmin.value) {
+      // 管理员获取所有活动
+      response = await axios.get('http://localhost:8080/api/admin/activities')
+    } else {
+      // 负责人获取本单位活动
+      const username = localStorage.getItem('headUsername')
+      if (!username) {
+        errorMessage.value = '未找到登录信息，请重新登录'
+        loading.value = false
+        return
+      }
+      response = await axios.get(`http://localhost:8080/api/head/activities/${username}`)
+    }
+    
     if (response.data.code === 200) {
       activities.value = response.data.data || []
     } else {
@@ -123,6 +137,34 @@ const closeEditDialog = () => {
   editingActivity.value = null
 }
 
+// 打开创建弹窗
+const openCreateDialog = () => {
+  newActivity.value = {
+    hdMc: '',
+    hdNr: '',
+    hdDd: '',
+    bmKssj: '',
+    bmJssj: '',
+    hdKssj: '',
+    hdJssj: '',
+    zmRs: null,
+    hdBq: '',
+    jnYq: '',
+    zyXz: '',
+    hdXq: '',
+    hdBz: ''
+  }
+  showCreateDialog.value = true
+  errorMessage.value = ''
+  successMessage.value = ''
+}
+
+// 关闭创建弹窗
+const closeCreateDialog = () => {
+  showCreateDialog.value = false
+  newActivity.value = null
+}
+
 // 格式化日期时间为input[type="datetime-local"]格式
 const formatDateTimeForInput = (date) => {
   if (!date) return ''
@@ -170,6 +212,63 @@ const saveEdit = async () => {
   }
 }
 
+// 保存新活动
+const saveCreate = async () => {
+  if (!newActivity.value) return
+
+  loading.value = true
+  errorMessage.value = ''
+  successMessage.value = ''
+
+  try {
+    // 根据角色获取不同的用户名
+    const username = isAdmin.value
+      ? localStorage.getItem('adminUsername')
+      : localStorage.getItem('headUsername')
+    
+    if (!username) {
+      showMessage('error', '未找到登录信息，请重新登录')
+      loading.value = false
+      return
+    }
+
+    // 转换日期格式为时间戳
+    const activityData = {
+      hdMc: newActivity.value.hdMc,
+      hdNr: newActivity.value.hdNr,
+      hdDd: newActivity.value.hdDd,
+      zmRs: parseInt(newActivity.value.zmRs),
+      bmKssj: new Date(newActivity.value.bmKssj).getTime(),
+      bmJssj: new Date(newActivity.value.bmJssj).getTime(),
+      hdKssj: new Date(newActivity.value.hdKssj).getTime(),
+      hdJssj: new Date(newActivity.value.hdJssj).getTime(),
+      hdBq: newActivity.value.hdBq || '',
+      jnYq: newActivity.value.jnYq || '',
+      zyXz: newActivity.value.zyXz || '',
+      hdXq: newActivity.value.hdXq || '',
+      hdBz: newActivity.value.hdBz || ''
+    }
+
+    const response = await axios.post('http://localhost:8080/api/head/activity', {
+      username: username,
+      activity: activityData
+    })
+    
+    if (response.data.code === 200) {
+      showMessage('success', '活动创建成功')
+      closeCreateDialog()
+      await fetchActivities()
+    } else {
+      showMessage('error', response.data.message || '创建失败')
+    }
+  } catch (error) {
+    console.error('创建活动失败:', error)
+    showMessage('error', '网络错误，请稍后重试')
+  } finally {
+    loading.value = false
+  }
+}
+
 // 删除活动
 const deleteActivity = async (activityId, activityName) => {
   if (!confirm(`确定要删除活动"${activityName}"吗？此操作不可恢复！`)) {
@@ -197,15 +296,9 @@ const deleteActivity = async (activityId, activityName) => {
   }
 }
 
-// 切换发布状态（下架/发布）
-const togglePublishStatus = async (activity) => {
-  const isPublished = activity.fbZt === '已发布'
-  const actionText = isPublished ? '下架' : '发布'
-  const confirmText = isPublished
-    ? `确定要下架活动"${activity.hdMc}"吗？下架后学生将无法看到此活动。`
-    : `确定要发布活动"${activity.hdMc}"吗？发布后学生将可以看到并报名此活动。`
-  
-  if (!confirm(confirmText)) {
+// 申报活动
+const submitActivity = async (activity) => {
+  if (!confirm(`确定要申报活动"${activity.hdMc}"吗？申报后将提交给管理员审核发布。`)) {
     return
   }
 
@@ -214,41 +307,57 @@ const togglePublishStatus = async (activity) => {
   successMessage.value = ''
 
   try {
-    const endpoint = isPublished
-      ? `http://localhost:8080/api/head/activity/${activity.hdBh}/unpublish`
-      : `http://localhost:8080/api/head/activity/${activity.hdBh}/publish`
-    
-    const response = await axios.put(endpoint)
+    const response = await axios.put(`http://localhost:8080/api/head/activity/${activity.hdBh}/submit`)
     
     if (response.data.code === 200) {
-      showMessage('success', isPublished ? '活动已下架' : '活动已发布')
+      showMessage('success', '活动已申报，等待管理员审核')
       await fetchActivities()
     } else {
-      showMessage('error', response.data.message || `${actionText}失败`)
+      showMessage('error', response.data.message || '申报失败')
     }
   } catch (error) {
-    console.error(`${actionText}活动失败:`, error)
+    console.error('申报活动失败:', error)
     showMessage('error', '网络错误，请稍后重试')
   } finally {
     loading.value = false
   }
 }
 
-// 获取发布按钮的文字
-const getPublishButtonText = (activity) => {
-  return activity.fbZt === '已发布' ? '下架' : '发布'
+// 判断是否可以申报（只有未发布的活动可以申报）
+const canSubmit = (activity) => {
+  return activity.fbZt === '未发布'
 }
 
-// 获取发布按钮的图标
-const getPublishButtonIcon = (activity) => {
-  return activity.fbZt === '已发布' ? Archive : Upload
+// 发布活动（管理员专用）
+const publishActivity = async (activity) => {
+  if (!confirm(`确定要发布活动"${activity.hdMc}"吗？发布后学生即可看到并报名。`)) {
+    return
+  }
+
+  loading.value = true
+  errorMessage.value = ''
+  successMessage.value = ''
+
+  try {
+    const response = await axios.put(`http://localhost:8080/api/admin/activity/${activity.hdBh}/publish`)
+    
+    if (response.data.code === 200) {
+      showMessage('success', '活动已发布')
+      await fetchActivities()
+    } else {
+      showMessage('error', response.data.message || '发布失败')
+    }
+  } catch (error) {
+    console.error('发布活动失败:', error)
+    showMessage('error', '网络错误，请稍后重试')
+  } finally {
+    loading.value = false
+  }
 }
 
-// 获取发布按钮的样式
-const getPublishButtonClass = (activity) => {
-  return activity.fbZt === '已发布'
-    ? 'gap-2 text-orange-600 hover:text-orange-700 hover:border-orange-300'
-    : 'gap-2 text-green-600 hover:text-green-700 hover:border-green-300'
+// 判断是否可以发布（管理员专用，只有"已申报"或"未发布"的活动可以发布）
+const canPublish = (activity) => {
+  return isAdmin.value && (activity.fbZt === '已申报' || activity.fbZt === '未发布')
 }
 
 onMounted(() => {
@@ -260,7 +369,7 @@ onMounted(() => {
   <div class="space-y-6">
     <div class="flex justify-between items-center">
       <h2 class="text-2xl font-bold text-slate-900">志愿活动设计</h2>
-      <Button class="gap-2">
+      <Button class="gap-2" @click="openCreateDialog">
         <Plus class="w-4 h-4" />
         创建新活动
       </Button>
@@ -316,16 +425,31 @@ onMounted(() => {
                     <Edit class="w-4 h-4" />
                     编辑
                   </Button>
-                  <!-- 统一的发布/下架按钮 -->
+                  
+                  <!-- 负责人：申报按钮 - 只有未发布的活动可以申报 -->
                   <Button
+                    v-if="!isAdmin && canSubmit(activity)"
                     variant="outline"
                     size="sm"
-                    :class="getPublishButtonClass(activity)"
-                    @click="togglePublishStatus(activity)"
+                    class="gap-2 text-blue-600 hover:text-blue-700 hover:border-blue-300"
+                    @click="submitActivity(activity)"
                   >
-                    <component :is="getPublishButtonIcon(activity)" class="w-4 h-4" />
-                    {{ getPublishButtonText(activity) }}
+                    <Upload class="w-4 h-4" />
+                    申报活动
                   </Button>
+                  
+                  <!-- 管理员：发布按钮 - 只有"已申报"或"未发布"的活动可以发布 -->
+                  <Button
+                    v-if="canPublish(activity)"
+                    variant="outline"
+                    size="sm"
+                    class="gap-2 text-green-600 hover:text-green-700 hover:border-green-300"
+                    @click="publishActivity(activity)"
+                  >
+                    <CheckCircle class="w-4 h-4" />
+                    发布活动
+                  </Button>
+                  
                   <Button
                     variant="outline"
                     size="sm"
@@ -499,6 +623,124 @@ onMounted(() => {
         <div class="sticky bottom-0 bg-slate-50 border-t border-slate-200 px-6 py-4 flex justify-end gap-3">
           <Button variant="outline" @click="closeEditDialog">取消</Button>
           <Button @click="saveEdit" :disabled="loading">
+            {{ loading ? '保存中...' : '保存' }}
+          </Button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 创建活动弹窗 -->
+    <div v-if="showCreateDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center">
+          <h3 class="text-xl font-semibold text-slate-900">创建新活动</h3>
+          <button @click="closeCreateDialog" class="text-slate-400 hover:text-slate-600">
+            <X class="w-6 h-6" />
+          </button>
+        </div>
+
+        <div v-if="newActivity" class="p-6 space-y-6">
+          <!-- 基本信息 -->
+          <div class="space-y-4">
+            <h4 class="font-semibold text-slate-900 border-b pb-2">基本信息</h4>
+            
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-2">活动名称 *</label>
+              <Input v-model="newActivity.hdMc" placeholder="请输入活动名称" />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-2">活动内容 *</label>
+              <textarea
+                v-model="newActivity.hdNr"
+                class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows="4"
+                placeholder="请输入活动内容描述"
+              ></textarea>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-2">活动地点 *</label>
+              <Input v-model="newActivity.hdDd" placeholder="请输入活动地点" />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-2">招募人数 *</label>
+              <Input v-model="newActivity.zmRs" type="number" placeholder="请输入招募人数" />
+            </div>
+          </div>
+
+          <!-- 时间设置 -->
+          <div class="space-y-4">
+            <h4 class="font-semibold text-slate-900 border-b pb-2">时间设置</h4>
+            
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-2">报名开始时间 *</label>
+                <Input v-model="newActivity.bmKssj" type="datetime-local" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-2">报名结束时间 *</label>
+                <Input v-model="newActivity.bmJssj" type="datetime-local" />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-2">活动开始时间 *</label>
+                <Input v-model="newActivity.hdKssj" type="datetime-local" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-2">活动结束时间 *</label>
+                <Input v-model="newActivity.hdJssj" type="datetime-local" />
+              </div>
+            </div>
+          </div>
+
+          <!-- 其他信息 -->
+          <div class="space-y-4">
+            <h4 class="font-semibold text-slate-900 border-b pb-2">其他信息</h4>
+            
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-2">活动标签</label>
+              <Input v-model="newActivity.hdBq" placeholder="如：社区服务、赛会服务等" />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-2">技能要求</label>
+              <Input v-model="newActivity.jnYq" placeholder="如：摄影摄像、英语翻译等" />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-2">专业限制</label>
+              <Input v-model="newActivity.zyXz" placeholder="如：英语、计算机等，留空表示不限" />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-2">活动需求</label>
+              <textarea
+                v-model="newActivity.hdXq"
+                class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows="3"
+                placeholder="请输入活动需求条件"
+              ></textarea>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-2">活动保障</label>
+              <textarea
+                v-model="newActivity.hdBz"
+                class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows="3"
+                placeholder="请输入活动保障措施"
+              ></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="sticky bottom-0 bg-slate-50 border-t border-slate-200 px-6 py-4 flex justify-end gap-3">
+          <Button variant="outline" @click="closeCreateDialog">取消</Button>
+          <Button @click="saveCreate" :disabled="loading">
             {{ loading ? '保存中...' : '保存' }}
           </Button>
         </div>

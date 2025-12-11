@@ -14,10 +14,16 @@ const routes = [
     component: () => import('../views/student/Dashboard.vue')
   },
   {
-    path: '/admin/dashboard',
-    name: 'AdminDashboard',
+    path: '/head/dashboard',
+    name: 'HeadDashboard',
     // 负责人管理端路由
     component: () => import('../views/college-university-level-departments/Dashboard.vue')
+  },
+  {
+    path: '/admin/dashboard',
+    name: 'SuperAdminDashboard',
+    // 管理员端路由
+    component: () => import('../views/admin/Dashboard.vue')
   }
 ]
 
