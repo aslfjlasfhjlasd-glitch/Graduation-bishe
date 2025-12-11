@@ -11,7 +11,8 @@ const errorMessage = ref('')
 
 // 获取报名记录（用于志愿者评价）
 const fetchRegistrations = async () => {
-  const username = localStorage.getItem('adminUsername')
+  // 修改点：使用 headUsername 获取负责人账号
+  const username = localStorage.getItem('headUsername')
   if (!username) {
     errorMessage.value = '未找到登录信息，请重新登录'
     return
@@ -57,7 +58,6 @@ onMounted(() => {
   <div class="space-y-6">
     <h2 class="text-2xl font-bold text-slate-900">志愿者评价</h2>
 
-    <!-- 错误提示 -->
     <div v-if="errorMessage" class="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
       <AlertCircle class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
       <div class="flex-1">
@@ -98,7 +98,6 @@ onMounted(() => {
               </span>
             </div>
 
-            <!-- 评价内容 -->
             <div v-if="record.evaluation" class="mt-3 p-3 bg-slate-50 rounded-lg">
               <div class="flex items-center gap-2 mb-2">
                 <span class="text-sm font-medium text-slate-700">评分:</span>
@@ -114,7 +113,6 @@ onMounted(() => {
               <p class="text-sm text-slate-700">{{ record.evaluation }}</p>
             </div>
 
-            <!-- 操作按钮 -->
             <div class="mt-3 flex gap-2">
               <Button v-if="!record.evaluation" variant="default" size="sm">
                 <MessageSquare class="w-4 h-4 mr-2" />

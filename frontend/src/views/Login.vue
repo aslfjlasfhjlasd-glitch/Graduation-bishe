@@ -44,69 +44,81 @@ const handleLogin = async (role) => {
     return;
   }
 
-  // 调用登录API
-  const result = await login(username.value, password.value, role);
-  if (result.code === 200) {
-    // 登录成功
-    console.log('User data:', result.data);
+  try {
+    // 调用登录API
+    const result = await login(username.value, password.value, role);
+    
+    if (result.code === 200) {
+      // 登录成功
+      console.log('Login success, user data:', result.data);
 
-    // 处理记住密码逻辑
-    if (rememberMe.value) {
-      const loginInfo = {
-        username: username.value,
-        password: password.value
+      // 处理记住密码逻辑
+      if (rememberMe.value) {
+        const loginInfo = {
+          username: username.value,
+          password: password.value
+        }
+        const encryptedData = CryptoJS.AES.encrypt(JSON.stringify(loginInfo), SECRET_KEY).toString()
+        localStorage.setItem('loginInfo', encryptedData)
+      } else {
+        localStorage.removeItem('loginInfo')
       }
-      const encryptedData = CryptoJS.AES.encrypt(JSON.stringify(loginInfo), SECRET_KEY).toString()
-      localStorage.setItem('loginInfo', encryptedData)
+
+      // 根据角色处理登录后的逻辑
+      if (role === 'student') {
+        // 学生登录：保存信息并跳转
+        localStorage.setItem('studentId', result.data.xsXh);
+        localStorage.setItem('studentName', result.data.xsXm || '');
+        localStorage.setItem('userRole', 'student');
+        router.push('/student/dashboard');
+      } else if (role === 'head') {
+        // 学院/部门负责人登录：保存信息并跳转
+        
+        // 判断是部门负责人还是学院负责人
+        if (result.data.xjbmfzrZh !== undefined) {
+          // 情况1：校级部门负责人 (DepartmentHead 实体)
+          console.log('Detected Department Head:', result.data);
+          localStorage.setItem('headName', result.data.xjbmfzrXm || '负责人');
+          localStorage.setItem('headDepartment', result.data.xjbmMc || '');
+          localStorage.setItem('headUsername', result.data.xjbmfzrZh);
+        } else if (result.data.xyZh !== undefined) {
+          // 情况2：学院负责人 (Academy 实体)
+          console.log('Detected Academy Head:', result.data);
+          localStorage.setItem('headName', result.data.fzrXm || '负责人');
+          localStorage.setItem('headDepartment', result.data.xyMc || '');
+          localStorage.setItem('headUsername', result.data.xyZh);
+        } else {
+          console.error('无法识别的负责人类型，返回数据:', result.data);
+          alert('登录数据异常，无法识别身份信息');
+          return;
+        }
+
+        localStorage.setItem('userRole', 'head');
+        router.push('/head/dashboard');
+      } else if (role === 'admin') {
+        // 超级管理员登录：保存信息并跳转到管理员端
+        localStorage.setItem('adminName', result.data.glyMc || '管理员');
+        localStorage.setItem('adminUsername', result.data.glyZh || '');
+        localStorage.setItem('userRole', 'superadmin');
+        router.push('/admin/dashboard');
+      }
     } else {
-      localStorage.removeItem('loginInfo')
+      // 登录失败，显示错误信息
+      alert('登录失败: ' + (result.message || '未知错误'));
     }
-
-    // 根据角色处理登录后的逻辑
-    if (role === 'student') {
-      // 学生登录：保存信息并跳转
-      localStorage.setItem('studentId', result.data.xsXh);
-      localStorage.setItem('studentName', result.data.xsXm || '');
-      localStorage.setItem('userRole', 'student');
-      router.push('/student/dashboard');
-    } else if (role === 'head') {
-      // 学院/部门负责人登录：保存信息并跳转
-      if (result.data.xjbmfzrXm) {
-        // 校级部门负责人
-        localStorage.setItem('headName', result.data.xjbmfzrXm || '负责人');
-        localStorage.setItem('headDepartment', result.data.xjbmMc || '');
-        localStorage.setItem('headUsername', result.data.xjbmfzrZh || '');
-      } else if (result.data.xyZh) {
-        // 学院负责人（通过xyZh判断是学院账号）
-        localStorage.setItem('headName', result.data.fzrXm || '负责人');
-        localStorage.setItem('headDepartment', result.data.xyMc || '');
-        localStorage.setItem('headUsername', result.data.xyZh || '');
-      }
-      localStorage.setItem('userRole', 'head');
-      router.push('/head/dashboard');
-    } else if (role === 'admin') {
-      // 超级管理员登录：保存信息并跳转到管理员端
-      localStorage.setItem('adminName', result.data.glyMc || '管理员');
-      localStorage.setItem('adminUsername', result.data.glyZh || '');
-      localStorage.setItem('userRole', 'superadmin');
-      router.push('/admin/dashboard');
-    }
-  } else {
-    // 登录失败，显示错误信息
-    alert('登录失败: ' + result.message);
+  } catch (error) {
+    console.error('Login error:', error);
+    alert('登录请求失败，请检查网络连接');
   }
 }
 </script>
 
 <template>
   <div class="flex min-h-screen w-full bg-slate-50">
-    <!-- 左侧区域：品牌展示与美化 -->
     <div class="hidden lg:flex lg:w-[70%] relative flex-col justify-center items-center bg-slate-900 text-white overflow-hidden">
-      <!-- 背景图案/渐变 -->
       <div class="absolute inset-0 bg-gradient-to-br from-blue-900 via-slate-900 to-slate-950 opacity-90"></div>
       <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center mix-blend-overlay opacity-20"></div>
       
-      <!-- 内容区域 -->
       <div class="relative z-10 flex flex-col items-start px-12 md:px-24">
         <div class="mb-8 p-4 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl">
            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-16 h-16 text-blue-400">
@@ -140,7 +152,6 @@ const handleLogin = async (role) => {
       </div>
     </div>
 
-    <!-- 右侧区域：登录表单 -->
     <div class="flex w-full lg:w-[30%] flex-col items-center justify-center px-4 py-12 sm:px-6 lg:px-8 bg-slate-50 relative">
       <Card class="w-full max-w-sm shadow-2xl border border-slate-200 bg-white py-8">
         <CardHeader class="space-y-2 text-center pb-8">
