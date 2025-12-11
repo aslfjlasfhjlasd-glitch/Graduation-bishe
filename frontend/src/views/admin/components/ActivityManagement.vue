@@ -158,6 +158,18 @@ const getUnpublishButtonText = () => {
   return '下架'
 }
 
+// 查看活动详情
+const viewActivityDetail = (activity) => {
+  selectedActivity.value = activity
+  showDetailModal.value = true
+}
+
+// 关闭详情弹窗
+const closeDetailModal = () => {
+  showDetailModal.value = false
+  selectedActivity.value = null
+}
+
 onMounted(() => {
   fetchActivities()
 })

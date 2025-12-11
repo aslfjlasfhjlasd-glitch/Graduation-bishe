@@ -6,6 +6,9 @@ import Input from '@/components/ui/input/Input.vue'
 import { Save, User, Phone, Building2, AlertCircle } from 'lucide-vue-next'
 import axios from 'axios'
 
+// 使用环境变量或默认地址
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+
 const adminInfo = ref({
   username: '',
   name: '',
@@ -21,7 +24,8 @@ const successMessage = ref('')
 
 // 获取负责人信息
 const fetchHeadInfo = async () => {
-  const username = localStorage.getItem('adminUsername')
+  // --- 修复点 1：使用正确的 Key 'headUsername' 获取负责人账号 ---
+  const username = localStorage.getItem('headUsername')
   if (!username) {
     errorMessage.value = '未找到登录信息，请重新登录'
     return
@@ -31,7 +35,7 @@ const fetchHeadInfo = async () => {
   errorMessage.value = ''
 
   try {
-    const response = await axios.get(`http://localhost:8080/api/head/info/${username}`)
+    const response = await axios.get(`${API_BASE}/api/head/info/${username}`)
     if (response.data.code === 200) {
       const data = response.data.data
       adminInfo.value = {
@@ -64,7 +68,7 @@ const handleSave = async () => {
   successMessage.value = ''
 
   try {
-    const response = await axios.put('http://localhost:8080/api/head/info', {
+    const response = await axios.put(`${API_BASE}/api/head/info`, {
       username: adminInfo.value.username,
       name: adminInfo.value.name,
       phone: adminInfo.value.phone
@@ -72,8 +76,9 @@ const handleSave = async () => {
 
     if (response.data.code === 200) {
       successMessage.value = '信息更新成功'
-      // 更新localStorage中的姓名
-      localStorage.setItem('adminName', adminInfo.value.name)
+      
+      // --- 修复点 2：更新 localStorage 中对应的 'headName' ---
+      localStorage.setItem('headName', adminInfo.value.name)
       
       // 3秒后清除成功消息
       setTimeout(() => {
@@ -106,7 +111,6 @@ onMounted(() => {
   <div class="space-y-6">
     <h2 class="text-2xl font-bold text-slate-900">信息维护</h2>
 
-    <!-- 错误提示 -->
     <div v-if="errorMessage" class="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
       <AlertCircle class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
       <div class="flex-1">
@@ -114,7 +118,6 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- 成功提示 -->
     <div v-if="successMessage" class="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start gap-3">
       <AlertCircle class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
       <div class="flex-1">
