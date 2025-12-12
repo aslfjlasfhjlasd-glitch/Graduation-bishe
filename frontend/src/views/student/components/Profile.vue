@@ -4,7 +4,7 @@ import axios from 'axios'
 import Button from '@/components/ui/button/button.vue'
 import Input from '@/components/ui/input/Input.vue'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { User, Phone, Award, Tag, FileText, Save, AlertCircle, CheckCircle2, Info, X } from 'lucide-vue-next'
+import { User, Phone, Award, Tag, FileText, Save, AlertCircle, CheckCircle2, Info, X, Lock } from 'lucide-vue-next'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
@@ -64,6 +64,15 @@ const errors = ref({
   xsDh: '',
   zzmm: ''
 })
+
+// 密码修改表单
+const passwordForm = ref({
+  oldPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+})
+
+const changingPassword = ref(false)
 
 // 显示提示
 const showToast = (type, message) => {
@@ -231,6 +240,60 @@ const genderDisplay = computed(() => {
   return studentInfo.value.xsXb === '1' ? '男' : studentInfo.value.xsXb === '0' ? '女' : '未知'
 })
 
+// 修改密码
+const handlePasswordChange = async () => {
+  // 验证表单
+  if (!passwordForm.value.oldPassword || !passwordForm.value.newPassword || !passwordForm.value.confirmPassword) {
+    showToast('error', '请填写所有密码字段')
+    return
+  }
+
+  if (passwordForm.value.newPassword.length < 6) {
+    showToast('error', '新密码长度不能少于6位')
+    return
+  }
+
+  if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
+    showToast('error', '两次输入的新密码不一致')
+    return
+  }
+
+  changingPassword.value = true
+  try {
+    const response = await axios.put(`${API_BASE}/api/student/password`, {
+      studentId: studentInfo.value.xsXh,
+      oldPassword: passwordForm.value.oldPassword,
+      newPassword: passwordForm.value.newPassword
+    })
+
+    if (response.data.code === 200) {
+      showToast('success', '密码修改成功')
+      // 清空表单
+      passwordForm.value = {
+        oldPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      }
+    } else {
+      showToast('error', response.data.message || '密码修改失败')
+    }
+  } catch (error) {
+    console.error('密码修改失败:', error)
+    showToast('error', '网络错误，请稍后重试')
+  } finally {
+    changingPassword.value = false
+  }
+}
+
+// 取消密码修改
+const handlePasswordCancel = () => {
+  passwordForm.value = {
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  }
+}
+
 onMounted(() => {
   loadStudentInfo()
 })
@@ -360,154 +423,232 @@ onMounted(() => {
         </CardContent>
       </Card>
 
-      <!-- 兴趣标签卡片 -->
+      <!-- 修改密码卡片 - 紧凑版 -->
+      <Card class="hover:shadow-lg transition-shadow duration-300 max-w-2xl">
+        <CardHeader>
+          <CardTitle class="flex items-center gap-2 text-lg">
+            <Lock class="w-5 h-5 text-orange-600" />
+            修改密码
+          </CardTitle>
+        </CardHeader>
+        <CardContent class="space-y-4">
+          <div class="grid gap-4">
+            <!-- 原密码 -->
+            <div class="space-y-2">
+              <label class="text-sm font-medium text-slate-700">原密码 <span class="text-rose-500">*</span></label>
+              <Input
+                v-model="passwordForm.oldPassword"
+                type="password"
+                placeholder="请输入原密码"
+                class="h-10"
+              />
+            </div>
+
+            <!-- 新密码和确认密码并排 -->
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-2">
+                <label class="text-sm font-medium text-slate-700">新密码 <span class="text-rose-500">*</span></label>
+                <Input
+                  v-model="passwordForm.newPassword"
+                  type="password"
+                  placeholder="至少6位"
+                  class="h-10"
+                />
+              </div>
+
+              <div class="space-y-2">
+                <label class="text-sm font-medium text-slate-700">确认新密码 <span class="text-rose-500">*</span></label>
+                <Input
+                  v-model="passwordForm.confirmPassword"
+                  type="password"
+                  placeholder="再次输入"
+                  class="h-10"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="flex gap-3 pt-2">
+            <Button
+              @click="handlePasswordChange"
+              :disabled="changingPassword"
+              variant="outline"
+              class="gap-2"
+              size="sm"
+            >
+              <Lock class="w-4 h-4" />
+              {{ changingPassword ? '修改中...' : '修改密码' }}
+            </Button>
+            <Button
+              variant="ghost"
+              @click="handlePasswordCancel"
+              :disabled="changingPassword"
+              size="sm"
+            >
+              取消
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <!-- 标签和简介合并卡片 -->
       <Card class="hover:shadow-lg transition-shadow duration-300">
         <CardHeader>
           <CardTitle class="flex items-center gap-2 text-xl">
-            <Tag class="w-5 h-5 text-purple-600" />
-            兴趣标签
+            <Tag class="w-5 h-5 text-blue-600" />
+            标签与简介
           </CardTitle>
-          <p class="text-sm text-slate-500 mt-2">选择或添加您感兴趣的志愿活动类型</p>
+          <p class="text-sm text-slate-500 mt-2">完善您的兴趣标签、技能标签和个人简介</p>
         </CardHeader>
-        <CardContent class="space-y-4">
-          <!-- 预设标签选项 -->
-          <div class="flex flex-wrap gap-2">
-            <button
-              v-for="interest in interestOptions"
-              :key="interest"
-              @click="toggleInterest(interest)"
-              :class="[
-                'px-4 py-2 rounded-full text-sm font-medium transition-all duration-200',
-                selectedInterests.includes(interest)
-                  ? 'bg-purple-600 text-white shadow-md hover:bg-purple-700'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              ]"
-            >
-              {{ interest }}
-            </button>
-          </div>
-
-          <!-- 自定义标签输入 -->
-          <div class="flex gap-2">
-            <Input 
-              v-model="customInterest" 
-              placeholder="输入自定义兴趣标签"
-              @keyup.enter="addCustomInterest"
-              class="flex-1"
-            />
-            <Button @click="addCustomInterest" variant="outline">添加</Button>
-          </div>
-
-          <!-- 已选标签显示 -->
-          <div v-if="selectedInterests.length > 0" class="space-y-2">
-            <p class="text-sm font-medium text-slate-700">已选标签：</p>
+        <CardContent class="space-y-6">
+          
+          <!-- 兴趣标签区域 -->
+          <div class="space-y-3">
+            <div class="flex items-center gap-2">
+              <Tag class="w-4 h-4 text-purple-600" />
+              <h3 class="text-base font-semibold text-slate-800">兴趣标签</h3>
+              <span class="text-xs text-slate-500">选择您感兴趣的志愿活动类型</span>
+            </div>
+            
+            <!-- 预设标签选项 -->
             <div class="flex flex-wrap gap-2">
-              <span
-                v-for="interest in selectedInterests"
+              <button
+                v-for="interest in interestOptions"
                 :key="interest"
-                class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm bg-purple-100 text-purple-700"
+                @click="toggleInterest(interest)"
+                :class="[
+                  'px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200',
+                  selectedInterests.includes(interest)
+                    ? 'bg-purple-600 text-white shadow-md hover:bg-purple-700'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                ]"
               >
                 {{ interest }}
-                <button @click="removeInterest(interest)" class="hover:text-purple-900">
-                  <X class="w-3 h-3" />
-                </button>
-              </span>
+              </button>
+            </div>
+
+            <!-- 自定义标签输入 -->
+            <div class="flex gap-2">
+              <Input
+                v-model="customInterest"
+                placeholder="输入自定义兴趣标签"
+                @keyup.enter="addCustomInterest"
+                class="flex-1 h-9"
+              />
+              <Button @click="addCustomInterest" variant="outline" size="sm">添加</Button>
+            </div>
+
+            <!-- 已选标签显示 -->
+            <div v-if="selectedInterests.length > 0" class="space-y-2">
+              <p class="text-sm font-medium text-slate-700">已选标签：</p>
+              <div class="flex flex-wrap gap-2">
+                <span
+                  v-for="interest in selectedInterests"
+                  :key="interest"
+                  class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm bg-purple-100 text-purple-700"
+                >
+                  {{ interest }}
+                  <button @click="removeInterest(interest)" class="hover:text-purple-900">
+                    <X class="w-3 h-3" />
+                  </button>
+                </span>
+              </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      <!-- 技能标签卡片 -->
-      <Card class="hover:shadow-lg transition-shadow duration-300">
-        <CardHeader>
-          <CardTitle class="flex items-center gap-2 text-xl">
-            <Award class="w-5 h-5 text-emerald-600" />
-            技能标签
-          </CardTitle>
-          <p class="text-sm text-slate-500 mt-2">选择或添加您擅长的技能</p>
-        </CardHeader>
-        <CardContent class="space-y-4">
-          <!-- 预设标签选项 -->
-          <div class="flex flex-wrap gap-2">
-            <button
-              v-for="skill in skillOptions"
-              :key="skill"
-              @click="toggleSkill(skill)"
-              :class="[
-                'px-4 py-2 rounded-full text-sm font-medium transition-all duration-200',
-                selectedSkills.includes(skill)
-                  ? 'bg-emerald-600 text-white shadow-md hover:bg-emerald-700'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              ]"
-            >
-              {{ skill }}
-            </button>
-          </div>
+          <!-- 分隔线 -->
+          <div class="border-t border-slate-200"></div>
 
-          <!-- 自定义标签输入 -->
-          <div class="flex gap-2">
-            <Input 
-              v-model="customSkill" 
-              placeholder="输入自定义技能标签"
-              @keyup.enter="addCustomSkill"
-              class="flex-1"
-            />
-            <Button @click="addCustomSkill" variant="outline">添加</Button>
-          </div>
-
-          <!-- 已选标签显示 -->
-          <div v-if="selectedSkills.length > 0" class="space-y-2">
-            <p class="text-sm font-medium text-slate-700">已选标签：</p>
+          <!-- 技能标签区域 -->
+          <div class="space-y-3">
+            <div class="flex items-center gap-2">
+              <Award class="w-4 h-4 text-emerald-600" />
+              <h3 class="text-base font-semibold text-slate-800">技能标签</h3>
+              <span class="text-xs text-slate-500">选择您擅长的技能</span>
+            </div>
+            
+            <!-- 预设标签选项 -->
             <div class="flex flex-wrap gap-2">
-              <span
-                v-for="skill in selectedSkills"
+              <button
+                v-for="skill in skillOptions"
                 :key="skill"
-                class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm bg-emerald-100 text-emerald-700"
+                @click="toggleSkill(skill)"
+                :class="[
+                  'px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200',
+                  selectedSkills.includes(skill)
+                    ? 'bg-emerald-600 text-white shadow-md hover:bg-emerald-700'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                ]"
               >
                 {{ skill }}
-                <button @click="removeSkill(skill)" class="hover:text-emerald-900">
-                  <X class="w-3 h-3" />
-                </button>
-              </span>
+              </button>
             </div>
+
+            <!-- 自定义标签输入 -->
+            <div class="flex gap-2">
+              <Input
+                v-model="customSkill"
+                placeholder="输入自定义技能标签"
+                @keyup.enter="addCustomSkill"
+                class="flex-1 h-9"
+              />
+              <Button @click="addCustomSkill" variant="outline" size="sm">添加</Button>
+            </div>
+
+            <!-- 已选标签显示 -->
+            <div v-if="selectedSkills.length > 0" class="space-y-2">
+              <p class="text-sm font-medium text-slate-700">已选标签：</p>
+              <div class="flex flex-wrap gap-2">
+                <span
+                  v-for="skill in selectedSkills"
+                  :key="skill"
+                  class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm bg-emerald-100 text-emerald-700"
+                >
+                  {{ skill }}
+                  <button @click="removeSkill(skill)" class="hover:text-emerald-900">
+                    <X class="w-3 h-3" />
+                  </button>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 分隔线 -->
+          <div class="border-t border-slate-200"></div>
+
+          <!-- 个人简介区域 -->
+          <div class="space-y-3">
+            <div class="flex items-center gap-2">
+              <FileText class="w-4 h-4 text-blue-600" />
+              <h3 class="text-base font-semibold text-slate-800">个人简介</h3>
+              <span class="text-xs text-slate-500">介绍一下您自己，最多500字</span>
+            </div>
+            
+            <textarea
+              v-model="studentInfo.grjj"
+              placeholder="请输入个人简介，包括您的特长、经历、志愿服务意愿等..."
+              maxlength="500"
+              rows="6"
+              class="flex w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+            ></textarea>
+            <p class="text-xs text-slate-500 text-right">
+              {{ studentInfo.grjj?.length || 0 }} / 500
+            </p>
+          </div>
+
+          <!-- 保存按钮 - 放在卡片内右下角 -->
+          <div class="flex justify-end pt-2">
+            <Button
+              @click="saveProfile"
+              :disabled="saving"
+              class="gap-2 px-6 h-10"
+            >
+              <Save class="w-4 h-4" />
+              {{ saving ? '保存中...' : '保存信息' }}
+            </Button>
           </div>
         </CardContent>
       </Card>
-
-      <!-- 个人简介卡片 -->
-      <Card class="hover:shadow-lg transition-shadow duration-300">
-        <CardHeader>
-          <CardTitle class="flex items-center gap-2 text-xl">
-            <FileText class="w-5 h-5 text-blue-600" />
-            个人简介
-          </CardTitle>
-          <p class="text-sm text-slate-500 mt-2">介绍一下您自己，最多500字</p>
-        </CardHeader>
-        <CardContent>
-          <textarea
-            v-model="studentInfo.grjj"
-            placeholder="请输入个人简介，包括您的特长、经历、志愿服务意愿等..."
-            maxlength="500"
-            rows="8"
-            class="flex w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
-          ></textarea>
-          <p class="text-xs text-slate-500 mt-2 text-right">
-            {{ studentInfo.grjj?.length || 0 }} / 500
-          </p>
-        </CardContent>
-      </Card>
-
-      <!-- 保存按钮 -->
-      <div class="flex justify-end gap-4">
-        <Button 
-          @click="saveProfile" 
-          :disabled="saving"
-          class="gap-2 px-8 h-11 text-base"
-        >
-          <Save class="w-4 h-4" />
-          {{ saving ? '保存中...' : '保存信息' }}
-        </Button>
-      </div>
     </div>
   </div>
 </template>

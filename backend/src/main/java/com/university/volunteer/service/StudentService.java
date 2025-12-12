@@ -183,4 +183,46 @@ public class StudentService {
             return Result.error("更新学生信息失败: " + e.getMessage());
         }
     }
+
+    /**
+     * 修改学生密码
+     * @param studentId 学号
+     * @param oldPassword 原密码
+     * @param newPassword 新密码
+     * @return 修改结果
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public Result<String> updatePassword(Integer studentId, String oldPassword, String newPassword) {
+        try {
+            // 验证新密码格式
+            if (newPassword == null || newPassword.trim().isEmpty()) {
+                return Result.error("新密码不能为空");
+            }
+            if (newPassword.length() < 6) {
+                return Result.error("新密码长度不能少于6位");
+            }
+            
+            // 查询学生信息验证旧密码
+            Student student = studentMapper.findStudentById(studentId);
+            if (student == null) {
+                return Result.error("学生信息不存在");
+            }
+            
+            // 验证旧密码
+            if (!oldPassword.equals(student.getXsMm())) {
+                return Result.error("原密码错误");
+            }
+            
+            // 更新密码
+            int rows = studentMapper.updatePassword(studentId, newPassword);
+            if (rows > 0) {
+                return Result.success("密码修改成功");
+            } else {
+                return Result.error("密码修改失败");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("密码修改失败: " + e.getMessage());
+        }
+    }
 }

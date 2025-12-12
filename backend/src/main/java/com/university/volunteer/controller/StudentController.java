@@ -43,4 +43,22 @@ public class StudentController {
     public Result<String> updateFullProfile(@RequestBody Student student) {
         return studentService.updateStudentFullInfo(student);
     }
+
+    /**
+     * 修改学生密码
+     * @param requestBody 包含 studentId, oldPassword, newPassword
+     * @return 修改结果
+     */
+    @PutMapping("/password")
+    public Result<String> updatePassword(@RequestBody java.util.Map<String, Object> requestBody) {
+        Integer studentId = (Integer) requestBody.get("studentId");
+        String oldPassword = (String) requestBody.get("oldPassword");
+        String newPassword = (String) requestBody.get("newPassword");
+
+        if (studentId == null || oldPassword == null || newPassword == null) {
+            return Result.error("参数不完整");
+        }
+
+        return studentService.updatePassword(studentId, oldPassword, newPassword);
+    }
 }

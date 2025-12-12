@@ -110,6 +110,56 @@ public class DepartmentHeadService {
     }
 
     /**
+     * 修改密码
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public Result<String> updatePassword(String username, String oldPassword, String newPassword) {
+        // 验证新密码格式
+        if (newPassword == null || newPassword.trim().isEmpty()) {
+            return Result.error("新密码不能为空");
+        }
+        if (newPassword.length() < 6) {
+            return Result.error("新密码长度不能少于6位");
+        }
+        
+        // 先查部门负责人表
+        DepartmentHead deptHead = departmentHeadMapper.findByUsername(username);
+        if (deptHead != null) {
+            // 验证旧密码
+            if (!oldPassword.equals(deptHead.getXjbmfzrMm())) {
+                return Result.error("原密码错误");
+            }
+            
+            // 更新密码
+            int rows = departmentHeadMapper.updatePassword(username, newPassword);
+            if (rows > 0) {
+                return Result.success("密码修改成功");
+            } else {
+                return Result.error("密码修改失败");
+            }
+        }
+
+        // 再查学院表
+        Academy academy = academyMapper.findByUsername(username);
+        if (academy != null) {
+            // 验证旧密码
+            if (!oldPassword.equals(academy.getXyMm())) {
+                return Result.error("原密码错误");
+            }
+            
+            // 更新密码
+            int rows = academyMapper.updatePassword(username, newPassword);
+            if (rows > 0) {
+                return Result.success("密码修改成功");
+            } else {
+                return Result.error("密码修改失败");
+            }
+        }
+
+        return Result.error("未找到用户信息");
+    }
+
+    /**
      * 根据负责人获取其发起的活动列表
      */
     public Result<List<VolunteerActivity>> getActivitiesByHead(String username) {

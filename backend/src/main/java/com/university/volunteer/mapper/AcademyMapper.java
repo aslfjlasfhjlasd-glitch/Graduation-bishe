@@ -12,4 +12,7 @@ public interface AcademyMapper {
     
     @Update("UPDATE t_xy SET FZR_XM = #{fzrXm}, XY_DH = #{xyDh} WHERE XY_ZH = #{xyZh}")
     int updateAcademy(Academy academy);
+    
+    @Update("UPDATE t_xy SET XY_MM = #{newPassword} WHERE XY_ZH = #{username}")
+    int updatePassword(String username, String newPassword);
 }

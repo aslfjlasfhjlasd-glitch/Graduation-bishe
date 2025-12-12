@@ -21,4 +21,7 @@ public interface StudentMapper {
     
     // 更新学生完整信息（管理员权限）
     int updateStudentFullInfo(Student student);
+    
+    // 更新学生密码
+    int updatePassword(@Param("studentId") Integer studentId, @Param("newPassword") String newPassword);
 }

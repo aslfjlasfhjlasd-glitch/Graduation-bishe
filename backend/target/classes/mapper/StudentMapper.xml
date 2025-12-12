@@ -100,4 +100,11 @@
         WHERE XS_XH = #{xsXh}
     </update>
 
+    <!-- 更新学生密码 -->
+    <update id="updatePassword">
+        UPDATE t_xs
+        SET XS_MM = #{newPassword}
+        WHERE XS_XH = #{studentId}
+    </update>
+
 </mapper>

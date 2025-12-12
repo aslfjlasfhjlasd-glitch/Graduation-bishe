@@ -62,6 +62,23 @@ public class DepartmentHeadController {
     }
 
     /**
+     * 修改密码
+     * @param requestBody 包含 username, oldPassword, newPassword
+     */
+    @PutMapping("/password")
+    public Result<String> updatePassword(@RequestBody Map<String, String> requestBody) {
+        String username = requestBody.get("username");
+        String oldPassword = requestBody.get("oldPassword");
+        String newPassword = requestBody.get("newPassword");
+
+        if (username == null || oldPassword == null || newPassword == null) {
+            return Result.error("参数不完整");
+        }
+
+        return departmentHeadService.updatePassword(username, oldPassword, newPassword);
+    }
+
+    /**
      * 获取负责人发起的活动列表
      * @param username 负责人账号
      */

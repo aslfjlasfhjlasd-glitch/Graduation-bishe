@@ -15,4 +15,7 @@ public interface DepartmentHeadMapper {
     
     @Update("UPDATE t_xjbmfzr SET XJBMFZR_XM = #{xjbmfzrXm}, XJBMFZR_DH = #{xjbmfzrDh} WHERE XJBMFZR_ZH = #{xjbmfzrZh}")
     int updateDepartmentHead(DepartmentHead departmentHead);
+    
+    @Update("UPDATE t_xjbmfzr SET XJBMFZR_MM = #{newPassword} WHERE XJBMFZR_ZH = #{username}")
+    int updatePassword(String username, String newPassword);
 }
