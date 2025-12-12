@@ -22,18 +22,9 @@ const studentInfo = ref({
   grjj: ''
 })
 
-// 预设标签选项
-const interestOptions = [
-  '环保公益', '教育支教', '社区服务', '文化传承',
-  '体育健康', '科技创新', '艺术表演', '国际交流',
-  '敬老助残', '应急救援'
-]
-
-const skillOptions = [
-  '组织协调', '沟通表达', '文案写作', '摄影摄像',
-  '外语翻译', '计算机技能', '医疗急救', '文艺表演',
-  '体育运动', '手工制作'
-]
+// 标签选项（从数据库动态加载）
+const interestOptions = ref([])
+const skillOptions = ref([])
 
 // 政治面貌选项
 const politicalStatusOptions = [
@@ -51,6 +42,7 @@ const customSkill = ref('')
 // 加载状态
 const loading = ref(false)
 const saving = ref(false)
+const loadingTags = ref(false)
 
 // 提示信息
 const toast = ref({
@@ -80,6 +72,40 @@ const showToast = (type, message) => {
   setTimeout(() => {
     toast.value.show = false
   }, 3000)
+}
+
+// 加载标签选项
+const loadTagOptions = async () => {
+  loadingTags.value = true
+  try {
+    // 加载兴趣标签（类型1）
+    const interestResponse = await axios.get(`${API_BASE}/api/tags/type/1`)
+    if (interestResponse.data.code === 200) {
+      interestOptions.value = interestResponse.data.data.map(tag => tag.bqMc)
+    }
+
+    // 加载技能标签（类型2）
+    const skillResponse = await axios.get(`${API_BASE}/api/tags/type/2`)
+    if (skillResponse.data.code === 200) {
+      skillOptions.value = skillResponse.data.data.map(tag => tag.bqMc)
+    }
+  } catch (error) {
+    console.error('加载标签选项失败', error)
+    showToast('error', '加载标签选项失败，使用默认选项')
+    // 如果加载失败，使用默认选项
+    interestOptions.value = [
+      '环保公益', '教育支教', '社区服务', '文化传承',
+      '体育健康', '科技创新', '艺术表演', '国际交流',
+      '敬老助残', '应急救援'
+    ]
+    skillOptions.value = [
+      '组织协调', '沟通表达', '文案写作', '摄影摄像',
+      '外语翻译', '计算机技能', '医疗急救', '文艺表演',
+      '体育运动', '手工制作'
+    ]
+  } finally {
+    loadingTags.value = false
+  }
 }
 
 // 加载学生信息
@@ -195,8 +221,37 @@ const validatePoliticalStatus = () => {
   return true
 }
 
-// 保存个人信息
-const saveProfile = async () => {
+// 保存个人信息（标签和简介）
+const saveTagsAndProfile = async () => {
+  saving.value = true
+  try {
+    // 将标签数组转换为逗号分隔的字符串
+    const dataToSave = {
+      xsXh: studentInfo.value.xsXh,
+      xqBq: selectedInterests.value.join(','),
+      jnBq: selectedSkills.value.join(','),
+      grjj: studentInfo.value.grjj
+    }
+    
+    const response = await axios.put(`${API_BASE}/api/student/profile`, dataToSave)
+    
+    if (response.data.code === 200) {
+      showToast('success', '信息保存成功')
+      // 重新加载信息以确保数据同步
+      await loadStudentInfo()
+    } else {
+      showToast('error', '保存失败：' + response.data.message)
+    }
+  } catch (error) {
+    console.error('保存信息失败', error)
+    showToast('error', '保存失败，请稍后重试')
+  } finally {
+    saving.value = false
+  }
+}
+
+// 保存基本信息（政治面貌和电话）
+const saveBasicInfo = async () => {
   // 验证表单
   const isPhoneValid = validatePhone()
   const isPoliticalStatusValid = validatePoliticalStatus()
@@ -208,27 +263,22 @@ const saveProfile = async () => {
   
   saving.value = true
   try {
-    // 将标签数组转换为逗号分隔的字符串
     const dataToSave = {
       xsXh: studentInfo.value.xsXh,
       zzmm: studentInfo.value.zzmm,
-      xsDh: studentInfo.value.xsDh,
-      xqBq: selectedInterests.value.join(','),
-      jnBq: selectedSkills.value.join(','),
-      grjj: studentInfo.value.grjj
+      xsDh: studentInfo.value.xsDh
     }
     
     const response = await axios.put(`${API_BASE}/api/student/profile`, dataToSave)
     
     if (response.data.code === 200) {
-      showToast('success', '个人信息保存成功')
-      // 重新加载信息以确保数据同步
+      showToast('success', '基本信息保存成功')
       await loadStudentInfo()
     } else {
       showToast('error', '保存失败：' + response.data.message)
     }
   } catch (error) {
-    console.error('保存个人信息失败', error)
+    console.error('保存基本信息失败', error)
     showToast('error', '保存失败，请稍后重试')
   } finally {
     saving.value = false
@@ -294,8 +344,10 @@ const handlePasswordCancel = () => {
   }
 }
 
-onMounted(() => {
-  loadStudentInfo()
+onMounted(async () => {
+  // 先加载标签选项，再加载学生信息
+  await loadTagOptions()
+  await loadStudentInfo()
 })
 </script>
 
@@ -338,7 +390,7 @@ onMounted(() => {
     </div>
 
     <!-- 加载状态 -->
-    <div v-if="loading" class="flex justify-center items-center py-20">
+    <div v-if="loading || loadingTags" class="flex justify-center items-center py-20">
       <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
     </div>
 
@@ -420,19 +472,32 @@ onMounted(() => {
               {{ errors.xsDh }}
             </p>
           </div>
+
+          <!-- 保存基本信息按钮 -->
+          <div class="md:col-span-2 flex justify-end pt-2">
+            <Button
+              @click="saveBasicInfo"
+              :disabled="saving"
+              class="gap-2 px-6 h-10"
+            >
+              <Save class="w-4 h-4" />
+              {{ saving ? '保存中...' : '保存基本信息' }}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
-      <!-- 修改密码卡片 - 紧凑版 -->
-      <Card class="hover:shadow-lg transition-shadow duration-300 max-w-2xl">
+      <!-- 修改密码卡片 - 缩小尺寸，新密码和确认密码并排 -->
+      <Card class="hover:shadow-lg transition-shadow duration-300">
         <CardHeader>
-          <CardTitle class="flex items-center gap-2 text-lg">
+          <CardTitle class="flex items-center gap-2 text-xl">
             <Lock class="w-5 h-5 text-orange-600" />
             修改密码
           </CardTitle>
+          <p class="text-sm text-slate-500 mt-2">为了账号安全，请定期修改密码</p>
         </CardHeader>
         <CardContent class="space-y-4">
-          <div class="grid gap-4">
+          <div class="grid gap-4 md:grid-cols-3 max-w-4xl">
             <!-- 原密码 -->
             <div class="space-y-2">
               <label class="text-sm font-medium text-slate-700">原密码 <span class="text-rose-500">*</span></label>
@@ -444,37 +509,35 @@ onMounted(() => {
               />
             </div>
 
-            <!-- 新密码和确认密码并排 -->
-            <div class="grid grid-cols-2 gap-4">
-              <div class="space-y-2">
-                <label class="text-sm font-medium text-slate-700">新密码 <span class="text-rose-500">*</span></label>
-                <Input
-                  v-model="passwordForm.newPassword"
-                  type="password"
-                  placeholder="至少6位"
-                  class="h-10"
-                />
-              </div>
+            <!-- 新密码 -->
+            <div class="space-y-2">
+              <label class="text-sm font-medium text-slate-700">新密码 <span class="text-rose-500">*</span></label>
+              <Input
+                v-model="passwordForm.newPassword"
+                type="password"
+                placeholder="至少6位"
+                class="h-10"
+              />
+            </div>
 
-              <div class="space-y-2">
-                <label class="text-sm font-medium text-slate-700">确认新密码 <span class="text-rose-500">*</span></label>
-                <Input
-                  v-model="passwordForm.confirmPassword"
-                  type="password"
-                  placeholder="再次输入"
-                  class="h-10"
-                />
-              </div>
+            <!-- 确认新密码 -->
+            <div class="space-y-2">
+              <label class="text-sm font-medium text-slate-700">确认新密码 <span class="text-rose-500">*</span></label>
+              <Input
+                v-model="passwordForm.confirmPassword"
+                type="password"
+                placeholder="再次输入"
+                class="h-10"
+              />
             </div>
           </div>
 
-          <div class="flex gap-3 pt-2">
+          <div class="flex gap-4 pt-2">
             <Button
               @click="handlePasswordChange"
               :disabled="changingPassword"
               variant="outline"
-              class="gap-2"
-              size="sm"
+              class="gap-2 h-10"
             >
               <Lock class="w-4 h-4" />
               {{ changingPassword ? '修改中...' : '修改密码' }}
@@ -483,10 +546,19 @@ onMounted(() => {
               variant="ghost"
               @click="handlePasswordCancel"
               :disabled="changingPassword"
-              size="sm"
+              class="h-10"
             >
               取消
             </Button>
+          </div>
+
+          <div class="text-xs text-slate-500 pt-2 border-t">
+            <p class="font-medium mb-1">提示：</p>
+            <ul class="list-disc list-inside space-y-1">
+              <li>新密码长度不能少于6位</li>
+              <li>请妥善保管您的密码</li>
+              <li>修改密码后，下次登录需使用新密码</li>
+            </ul>
           </div>
         </CardContent>
       </Card>
@@ -495,7 +567,7 @@ onMounted(() => {
       <Card class="hover:shadow-lg transition-shadow duration-300">
         <CardHeader>
           <CardTitle class="flex items-center gap-2 text-xl">
-            <Tag class="w-5 h-5 text-blue-600" />
+            <Tag class="w-5 h-5 text-purple-600" />
             标签与简介
           </CardTitle>
           <p class="text-sm text-slate-500 mt-2">完善您的兴趣标签、技能标签和个人简介</p>
@@ -503,11 +575,11 @@ onMounted(() => {
         <CardContent class="space-y-6">
           
           <!-- 兴趣标签区域 -->
-          <div class="space-y-3">
+          <div class="space-y-4 pb-6 border-b border-slate-200">
             <div class="flex items-center gap-2">
               <Tag class="w-4 h-4 text-purple-600" />
               <h3 class="text-base font-semibold text-slate-800">兴趣标签</h3>
-              <span class="text-xs text-slate-500">选择您感兴趣的志愿活动类型</span>
+              <span class="text-xs text-slate-500">选择或添加您感兴趣的志愿活动类型</span>
             </div>
             
             <!-- 预设标签选项 -->
@@ -529,13 +601,13 @@ onMounted(() => {
 
             <!-- 自定义标签输入 -->
             <div class="flex gap-2">
-              <Input
-                v-model="customInterest"
+              <Input 
+                v-model="customInterest" 
                 placeholder="输入自定义兴趣标签"
                 @keyup.enter="addCustomInterest"
                 class="flex-1 h-9"
               />
-              <Button @click="addCustomInterest" variant="outline" size="sm">添加</Button>
+              <Button @click="addCustomInterest" variant="outline" class="h-9">添加</Button>
             </div>
 
             <!-- 已选标签显示 -->
@@ -556,15 +628,12 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- 分隔线 -->
-          <div class="border-t border-slate-200"></div>
-
           <!-- 技能标签区域 -->
-          <div class="space-y-3">
+          <div class="space-y-4 pb-6 border-b border-slate-200">
             <div class="flex items-center gap-2">
               <Award class="w-4 h-4 text-emerald-600" />
               <h3 class="text-base font-semibold text-slate-800">技能标签</h3>
-              <span class="text-xs text-slate-500">选择您擅长的技能</span>
+              <span class="text-xs text-slate-500">选择或添加您擅长的技能</span>
             </div>
             
             <!-- 预设标签选项 -->
@@ -586,13 +655,13 @@ onMounted(() => {
 
             <!-- 自定义标签输入 -->
             <div class="flex gap-2">
-              <Input
-                v-model="customSkill"
+              <Input 
+                v-model="customSkill" 
                 placeholder="输入自定义技能标签"
                 @keyup.enter="addCustomSkill"
                 class="flex-1 h-9"
               />
-              <Button @click="addCustomSkill" variant="outline" size="sm">添加</Button>
+              <Button @click="addCustomSkill" variant="outline" class="h-9">添加</Button>
             </div>
 
             <!-- 已选标签显示 -->
@@ -613,11 +682,8 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- 分隔线 -->
-          <div class="border-t border-slate-200"></div>
-
           <!-- 个人简介区域 -->
-          <div class="space-y-3">
+          <div class="space-y-4">
             <div class="flex items-center gap-2">
               <FileText class="w-4 h-4 text-blue-600" />
               <h3 class="text-base font-semibold text-slate-800">个人简介</h3>
@@ -636,10 +702,10 @@ onMounted(() => {
             </p>
           </div>
 
-          <!-- 保存按钮 - 放在卡片内右下角 -->
-          <div class="flex justify-end pt-2">
+          <!-- 保存信息按钮 - 右下角 -->
+          <div class="flex justify-end pt-4">
             <Button
-              @click="saveProfile"
+              @click="saveTagsAndProfile"
               :disabled="saving"
               class="gap-2 px-6 h-10"
             >
@@ -649,6 +715,7 @@ onMounted(() => {
           </div>
         </CardContent>
       </Card>
+
     </div>
   </div>
 </template>
