@@ -66,35 +66,53 @@ const handleLogin = async (role) => {
 
       // 根据角色处理登录后的逻辑
       if (role === 'student') {
-        // 学生登录：保存信息并跳转
+        // ... (学生逻辑保持不变) ...
         localStorage.setItem('studentId', result.data.xsXh);
         localStorage.setItem('studentName', result.data.xsXm || '');
         localStorage.setItem('userRole', 'student');
         router.push('/student/dashboard');
+
       } else if (role === 'head') {
-        // 学院/部门负责人登录：保存信息并跳转
+        // 学院/部门负责人登录逻辑
+        console.log('负责人登录原始返回数据:', result); // 打印完整返回结果
         
-        // 判断是部门负责人还是学院负责人
-        if (result.data.xjbmfzrZh !== undefined) {
-          // 情况1：校级部门负责人 (DepartmentHead 实体)
-          console.log('Detected Department Head:', result.data);
-          localStorage.setItem('headName', result.data.xjbmfzrXm || '负责人');
-          localStorage.setItem('headDepartment', result.data.xjbmMc || '');
-          localStorage.setItem('headUsername', result.data.xjbmfzrZh);
-        } else if (result.data.xyZh !== undefined) {
-          // 情况2：学院负责人 (Academy 实体)
-          console.log('Detected Academy Head:', result.data);
-          localStorage.setItem('headName', result.data.fzrXm || '负责人');
-          localStorage.setItem('headDepartment', result.data.xyMc || '');
-          localStorage.setItem('headUsername', result.data.xyZh);
-        } else {
-          console.error('无法识别的负责人类型，返回数据:', result.data);
-          alert('登录数据异常，无法识别身份信息');
+        // 确保 result.data 存在
+        if (!result.data) {
+          alert('登录失败：后端未返回有效数据');
           return;
         }
 
-        localStorage.setItem('userRole', 'head');
-        router.push('/head/dashboard');
+        const data = result.data;
+        let headUsername = '';
+        
+        // 尝试识别身份并提取账号
+        // 逻辑说明：检查数据中是否存在特定的唯一字段
+        if (data.xjbmfzrZh) {
+          // 情况1：匹配到校级部门负责人 (DepartmentHead)
+          console.log('身份识别成功: 校级部门负责人');
+          headUsername = data.xjbmfzrZh;
+          localStorage.setItem('headName', data.xjbmfzrXm || '负责人');
+          localStorage.setItem('headDepartment', data.xjbmMc || '');
+        } else if (data.xyZh) {
+          // 情况2：匹配到学院负责人 (Academy)
+          console.log('身份识别成功: 学院负责人');
+          headUsername = data.xyZh;
+          localStorage.setItem('headName', data.fzrXm || '负责人');
+          localStorage.setItem('headDepartment', data.xyMc || '');
+        }
+
+        // 核心修复：只有提取到了 headUsername 才允许跳转
+        if (headUsername) {
+          localStorage.setItem('headUsername', headUsername);
+          localStorage.setItem('userRole', 'head');
+          console.log('登录成功，已保存 headUsername:', headUsername);
+          router.push('/head/dashboard');
+        } else {
+          // 如果两个字段都没找到，打印数据以便排查
+          console.error('无法识别负责人身份，返回的关键字段缺失。当前数据:', data);
+          alert('登录异常：无法识别您的身份信息（未找到账号字段），请联系管理员或检查控制台日志。');
+        }
+
       } else if (role === 'admin') {
         // 超级管理员登录：保存信息并跳转到管理员端
         localStorage.setItem('adminName', result.data.glyMc || '管理员');
