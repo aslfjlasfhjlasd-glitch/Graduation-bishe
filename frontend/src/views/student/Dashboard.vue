@@ -32,14 +32,26 @@ const studentName = ref(localStorage.getItem('studentName') || '学生')
 
 // 组件挂载时检查登录状态
 onMounted(() => {
-  const storedName = localStorage.getItem('studentName')
+  const storedName = localStorage.getItem('headName')
+  const storedDepartment = localStorage.getItem('headDepartment')
+  // 1. 新增：获取 headUsername
+  const storedUsername = localStorage.getItem('headUsername')
+  
   if (storedName) {
-    studentName.value = storedName
+    headName.value = storedName
+  }
+  if (storedDepartment) {
+    headDepartment.value = storedDepartment
   }
   
-  // 如果没有登录信息，跳转到登录页
   const userRole = localStorage.getItem('userRole')
-  if (!userRole) {
+  
+  // 2. 修改校验逻辑：同时检查 userRole 和 headUsername
+  // 如果身份不对，或者关键的用户名缺失，都视为未登录/登录失效
+  if (!userRole || userRole !== 'head' || !storedUsername) {
+    // 可以选择清空所有信息以防万一
+    localStorage.clear() 
+    alert('登录信息失效或缺失，请重新登录')
     router.push('/')
   }
 })
