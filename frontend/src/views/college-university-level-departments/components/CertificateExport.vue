@@ -2,13 +2,16 @@
 import { ref, onMounted, computed } from 'vue'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import Button from '@/components/ui/button/button.vue'
-import { FileText, Download, Filter, AlertCircle } from 'lucide-vue-next'
+import { FileText, Filter, AlertCircle, CheckCircle, Clock3 } from 'lucide-vue-next'
 import axios from 'axios'
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
 const registrations = ref([])
 const loading = ref(false)
 const errorMessage = ref('')
 const filterType = ref('all')
+const processingId = ref(null)
 
 const fetchRegistrations = async () => {
   const username = localStorage.getItem('headUsername') // 修正
@@ -21,7 +24,7 @@ const fetchRegistrations = async () => {
   errorMessage.value = ''
 
   try {
-    const response = await axios.get(`http://localhost:8080/api/head/registrations/${username}`)
+    const response = await axios.get(`${API_BASE}/api/head/registrations/${username}`)
     if (response.data.code === 200) {
       registrations.value = response.data.data || []
     } else {
@@ -36,23 +39,46 @@ const fetchRegistrations = async () => {
 }
 
 const filteredRegistrations = computed(() => {
+  let base = registrations.value.filter(r => r.activityStatus === '已结束')
   switch (filterType.value) {
     case 'completed':
-      return registrations.value.filter(r => r.credits > 0)
+      return base.filter(r => r.credits > 0)
     case 'evaluated':
-      return registrations.value.filter(r => r.evaluation)
+      return base.filter(r => r.evaluation)
     default:
-      return registrations.value
+      return base
   }
 })
 
 const statistics = computed(() => {
   return {
-    total: registrations.value.length,
-    completed: registrations.value.filter(r => r.credits > 0).length,
-    evaluated: registrations.value.filter(r => r.evaluation).length
+    total: registrations.value.filter(r => r.activityStatus === '已结束').length,
+    completed: registrations.value.filter(r => r.activityStatus === '已结束' && r.credits > 0).length,
+    evaluated: registrations.value.filter(r => r.activityStatus === '已结束' && r.evaluation).length
   }
 })
+
+const confirmCertificate = async (record) => {
+  const username = localStorage.getItem('headUsername')
+  if (!username) {
+    errorMessage.value = '未找到登录信息，请重新登录'
+    return
+  }
+  processingId.value = record.id
+  try {
+    const res = await axios.put(`${API_BASE}/api/head/certificate/${record.id}/confirm`, { username })
+    if (res.data.code === 200) {
+      await fetchRegistrations()
+    } else {
+      errorMessage.value = res.data.message || '出具失败'
+    }
+  } catch (e) {
+    console.error(e)
+    errorMessage.value = e?.response?.data?.message || '出具失败'
+  } finally {
+    processingId.value = null
+  }
+}
 
 onMounted(() => {
   fetchRegistrations()
@@ -130,9 +156,10 @@ onMounted(() => {
                 <th class="text-left py-3 px-4 font-semibold text-slate-700">学生姓名</th>
                 <th class="text-left py-3 px-4 font-semibold text-slate-700">学号</th>
                 <th class="text-left py-3 px-4 font-semibold text-slate-700">活动名称</th>
-                <th class="text-left py-3 px-4 font-semibold text-slate-700">工时</th>
-                <th class="text-left py-3 px-4 font-semibold text-slate-700">学分</th>
-                <th class="text-left py-3 px-4 font-semibold text-slate-700">评价</th>
+                <th class="text-left py-3 px-4 font-semibold text-slate-700">服务时长</th>
+                <th class="text-left py-3 px-4 font-semibold text-slate-700">获得学分</th>
+                <th class="text-left py-3 px-4 font-semibold text-slate-700">参与日期</th>
+                <th class="text-left py-3 px-4 font-semibold text-slate-700">状态</th>
                 <th class="text-left py-3 px-4 font-semibold text-slate-700">操作</th>
               </tr>
             </thead>
@@ -142,28 +169,34 @@ onMounted(() => {
                 <td class="py-3 px-4 text-slate-600">{{ record.studentId }}</td>
                 <td class="py-3 px-4">{{ record.activityName }}</td>
                 <td class="py-3 px-4">
-                  <span v-if="record.duration" class="text-slate-700">{{ record.duration }}h</span>
-                  <span v-else class="text-slate-400">-</span>
+                  <span class="text-slate-700">{{ record.duration || 0 }}h</span>
                 </td>
                 <td class="py-3 px-4">
-                  <span v-if="record.credits" class="font-semibold text-blue-600">{{ record.credits }}</span>
-                  <span v-else class="text-slate-400">-</span>
+                  <span class="font-semibold text-blue-600">{{ record.credits || 0 }}</span>
                 </td>
                 <td class="py-3 px-4">
-                  <span v-if="record.evaluation" class="text-green-600">✓</span>
-                  <span v-else class="text-slate-400">-</span>
+                  <span class="text-slate-700">{{ record.activityTime || '-' }}</span>
                 </td>
                 <td class="py-3 px-4">
-                  <div class="flex gap-2">
-                    <Button variant="outline" size="sm" class="gap-1">
-                      <Download class="w-3 h-3" />
-                      参与证明
-                    </Button>
-                    <Button v-if="record.credits > 0" variant="outline" size="sm" class="gap-1">
-                      <Download class="w-3 h-3" />
-                      学分证明
-                    </Button>
-                  </div>
+                  <span
+                    class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium"
+                    :class="record.certificateConfirmed ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'"
+                  >
+                    <CheckCircle v-if="record.certificateConfirmed" class="w-4 h-4" />
+                    <Clock3 v-else class="w-4 h-4" />
+                    {{ record.certificateConfirmed ? '已确认' : '待确认' }}
+                  </span>
+                </td>
+                <td class="py-3 px-4">
+                  <Button
+                    v-if="!record.certificateConfirmed"
+                    variant="default"
+                    size="sm"
+                    :disabled="processingId === record.id"
+                    @click="confirmCertificate(record)"
+                  >
+                    {{ processingId === record.id ? '出具中...' : '确认出具证明' }}
+                  </Button>
                 </td>
               </tr>
             </tbody>

@@ -144,7 +144,7 @@ const handleLogout = () => {
             </button>
             <button @click="handleMenuClick('evaluation-certificate')" :class="['w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all duration-200 border-l-2 ml-2', activeMenu === 'evaluation-certificate' ? 'border-teal-500 text-teal-400 bg-slate-800/50' : 'border-transparent text-slate-500 hover:text-slate-300 hover:border-slate-600']">
               <FileCheck class="w-3.5 h-3.5" />
-              志愿活动证明导出
+              志愿活动证明确认
             </button>
           </div>
         </div>
@@ -174,7 +174,7 @@ const handleLogout = () => {
               activeMenu === 'volunteer-attendance' ? '志愿者管理 / 考勤管理' :
               activeMenu === 'volunteer-workhours' ? '志愿者管理 / 工时学分确认' :
               activeMenu === 'evaluation-volunteer' ? '评价与认证 / 志愿者评价' :
-              activeMenu === 'evaluation-certificate' ? '评价与认证 / 志愿活动证明导出' :
+              activeMenu === 'evaluation-certificate' ? '评价与认证 / 志愿活动证明确认' :
               activeMenu === 'info-maintenance' ? '信息维护' : '欢迎'
             }}
           </h2>

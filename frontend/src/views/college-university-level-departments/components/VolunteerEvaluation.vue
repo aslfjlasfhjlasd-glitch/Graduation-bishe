@@ -5,9 +5,17 @@ import Button from '@/components/ui/button/button.vue'
 import { Star, MessageSquare, AlertCircle } from 'lucide-vue-next'
 import axios from 'axios'
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+
 const registrations = ref([])
 const loading = ref(false)
 const errorMessage = ref('')
+const showModal = ref(false)
+const editingRecord = ref(null)
+const form = ref({
+  rating: 5,
+  evaluation: ''
+})
 
 // 获取报名记录（用于志愿者评价）
 const fetchRegistrations = async () => {
@@ -22,7 +30,7 @@ const fetchRegistrations = async () => {
   errorMessage.value = ''
 
   try {
-    const response = await axios.get(`http://localhost:8080/api/head/registrations/${username}`)
+    const response = await axios.get(`${API_BASE}/api/head/registrations/${username}`)
     if (response.data.code === 200) {
       // 只显示有学分确认的记录
       registrations.value = (response.data.data || []).filter(r => r.credits > 0)
@@ -47,6 +55,34 @@ const renderStars = (rating) => {
 const getEvaluationStatusClass = (evaluation) => {
   if (evaluation) return 'bg-green-100 text-green-700'
   return 'bg-yellow-100 text-yellow-700'
+}
+
+const openEvaluation = (record) => {
+  editingRecord.value = record
+  form.value.rating = record.rating || 5
+  form.value.evaluation = record.evaluation || ''
+  showModal.value = true
+}
+
+const submitEvaluation = async () => {
+  if (!editingRecord.value) return
+  const username = localStorage.getItem('headUsername')
+  if (!username) {
+    errorMessage.value = '未找到负责人登录信息，请重新登录'
+    return
+  }
+  try {
+    await axios.put(`${API_BASE}/api/head/evaluation/${editingRecord.value.id}`, {
+      username,
+      rating: Number(form.value.rating || 5),
+      evaluation: form.value.evaluation
+    })
+    showModal.value = false
+    await fetchRegistrations()
+  } catch (e) {
+    console.error(e)
+    errorMessage.value = e?.response?.data?.message || '提交评价失败'
+  }
 }
 
 onMounted(() => {
@@ -114,11 +150,11 @@ onMounted(() => {
             </div>
 
             <div class="mt-3 flex gap-2">
-              <Button v-if="!record.evaluation" variant="default" size="sm">
+              <Button v-if="!record.evaluation" variant="default" size="sm" @click="openEvaluation(record)">
                 <MessageSquare class="w-4 h-4 mr-2" />
                 评价
               </Button>
-              <Button v-else variant="outline" size="sm">
+              <Button v-else variant="outline" size="sm" @click="openEvaluation(record)">
                 <MessageSquare class="w-4 h-4 mr-2" />
                 修改评价
               </Button>
@@ -127,5 +163,33 @@ onMounted(() => {
         </div>
       </CardContent>
     </Card>
+
+    <!-- 评价弹窗 -->
+    <div
+      v-if="showModal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+      @click.self="showModal = false"
+    >
+      <div class="w-full max-w-md rounded-lg bg-white shadow-xl">
+        <div class="flex items-center justify-between border-b px-4 py-3">
+          <h3 class="text-base font-semibold text-slate-800">志愿者评价</h3>
+          <button class="text-slate-500 hover:text-slate-700" aria-label="关闭" @click="showModal = false">✕</button>
+        </div>
+        <div class="px-4 py-4 space-y-3">
+          <label class="block text-sm text-slate-700">
+            评分（1-5）
+            <input type="number" min="1" max="5" v-model="form.rating" class="mt-1 w-full border rounded px-3 py-2 text-sm" />
+          </label>
+          <label class="block text-sm text-slate-700">
+            评价
+            <textarea rows="4" v-model="form.evaluation" class="mt-1 w-full border rounded px-3 py-2 text-sm" />
+          </label>
+        </div>
+        <div class="flex justify-end gap-2 border-t px-4 py-3">
+          <Button variant="outline" size="sm" @click="showModal = false">取消</Button>
+          <Button variant="default" size="sm" @click="submitEvaluation">提交</Button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>

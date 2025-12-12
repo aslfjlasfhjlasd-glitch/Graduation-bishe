@@ -11,7 +11,8 @@ import {
   ChevronRight,
   ClipboardList,
   BarChart3,
-  GraduationCap
+  GraduationCap,
+  FileText
 } from 'lucide-vue-next'
 import Button from '@/components/ui/button/button.vue'
 import { Card, CardContent } from '@/components/ui/card'
@@ -20,6 +21,8 @@ const ActivityHall = defineAsyncComponent(() => import('./components/ActivityHal
 const RegistrationStatus = defineAsyncComponent(() => import('./components/RegistrationStatus.vue'))
 const ActivityPerformance = defineAsyncComponent(() => import('./components/ActivityPerformance.vue'))
 const Profile = defineAsyncComponent(() => import('./components/Profile.vue'))
+const LeaveDownload = defineAsyncComponent(() => import('./components/LeaveDownload.vue'))
+const CertificateDownload = defineAsyncComponent(() => import('./components/CertificateDownload.vue'))
 
 const router = useRouter()
 
@@ -154,6 +157,30 @@ const handleLogout = () => {
               <BarChart3 class="w-3.5 h-3.5" />
               活动表现查看
             </button>
+            <button 
+              @click="handleMenuClick('activity-leave')"
+              :class="[
+                'w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all duration-200 border-l-2 ml-2',
+                activeMenu === 'activity-leave' 
+                  ? 'border-blue-500 text-blue-400 bg-slate-800/50' 
+                  : 'border-transparent text-slate-500 hover:text-slate-300 hover:border-slate-600'
+              ]"
+            >
+              <FileText class="w-3.5 h-3.5" />
+              公假单下载
+            </button>
+            <button 
+              @click="handleMenuClick('activity-certificate')"
+              :class="[
+                'w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all duration-200 border-l-2 ml-2',
+                activeMenu === 'activity-certificate' 
+                  ? 'border-blue-500 text-blue-400 bg-slate-800/50' 
+                  : 'border-transparent text-slate-500 hover:text-slate-300 hover:border-slate-600'
+              ]"
+            >
+              <FileText class="w-3.5 h-3.5" />
+              志愿活动证明下载
+            </button>
           </div>
         </div>
 
@@ -195,6 +222,8 @@ const handleLogout = () => {
               activeMenu === 'hall' ? '志愿活动大厅' :
               activeMenu === 'activity-status' ? '活动全流程 / 活动状态追踪' :
               activeMenu === 'activity-performance' ? '活动全流程 / 活动表现查看' :
+              activeMenu === 'activity-leave' ? '活动全流程 / 公假单下载' :
+              activeMenu === 'activity-certificate' ? '活动全流程 / 志愿活动证明下载' :
               activeMenu === 'profile' ? '个人信息' : '欢迎'
             }}
           </h2>
@@ -232,6 +261,8 @@ const handleLogout = () => {
           <ActivityHall v-else-if="activeMenu === 'hall'" />
           <RegistrationStatus v-else-if="activeMenu === 'activity-status'" />
           <ActivityPerformance v-else-if="activeMenu === 'activity-performance'" />
+          <LeaveDownload v-else-if="activeMenu === 'activity-leave'" />
+          <CertificateDownload v-else-if="activeMenu === 'activity-certificate'" />
           <Profile v-else-if="activeMenu === 'profile'" />
           <div v-else class="grid gap-6">
             <Card class="bg-white border-slate-100 shadow-sm min-h-[300px]">

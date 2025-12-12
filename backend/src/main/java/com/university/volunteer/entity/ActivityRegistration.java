@@ -49,6 +49,11 @@ public class ActivityRegistration {
     private String status;
 
     /**
+     * 审核/驳回理由 (SH_LY)
+     */
+    private String auditReason;
+
+    /**
      * 签到时间 (QD_SJ)
      */
     private Date checkInTime;
@@ -66,12 +71,12 @@ public class ActivityRegistration {
     /**
      * 参与活动时长 (HD_SC)
      */
-    private Integer duration;
+    private Double duration;
 
     /**
      * 获得学分 (HD_XF)
      */
-    private Integer credits;
+    private Double credits;
 
     /**
      * 志愿者评价 (ZYZ_PJ)
@@ -79,10 +84,39 @@ public class ActivityRegistration {
     private String evaluation;
 
     /**
-     * 评分(1-5分) (PF)
+     * 负责人评分(1-5分) (FZR_PF)
      */
     private Integer rating;
 
+    /**
+     * 公假单确认状态 (GJD_ZT) 1-已确认 0-未确认
+     */
+    private Integer leaveConfirmed;
+
+    /**
+     * 公假单出具时间 (GJD_SJ)
+     */
+    private Date leaveIssuedAt;
+
+    /**
+     * 证明确认状态 (ZM_ZT) 1-已确认 0-未确认
+     */
+    private Integer certificateConfirmed;
+
+    /**
+     * 证明出具时间 (ZM_SJ)
+     */
+    private Date certificateIssuedAt;
+
+    /**
+     * 活动所属单位（用于负责人权限校验）
+     */
+    private String activityDepartment;
+
+    /**
+     * 活动状态（用于筛选已结束）
+     */
+    private String activityStatus;
     /**
      * 报名时间 (BM_SJ) - 新增字段
      */
@@ -160,6 +194,14 @@ public class ActivityRegistration {
         this.status = status;
     }
 
+    public String getAuditReason() {
+        return auditReason;
+    }
+
+    public void setAuditReason(String auditReason) {
+        this.auditReason = auditReason;
+    }
+
     public Date getCheckInTime() {
         return checkInTime;
     }
@@ -184,19 +226,19 @@ public class ActivityRegistration {
         this.attendanceStatus = attendanceStatus;
     }
 
-    public Integer getDuration() {
+    public Double getDuration() {
         return duration;
     }
 
-    public void setDuration(Integer duration) {
+    public void setDuration(Double duration) {
         this.duration = duration;
     }
 
-    public Integer getCredits() {
+    public Double getCredits() {
         return credits;
     }
 
-    public void setCredits(Integer credits) {
+    public void setCredits(Double credits) {
         this.credits = credits;
     }
 
@@ -214,6 +256,54 @@ public class ActivityRegistration {
 
     public void setRating(Integer rating) {
         this.rating = rating;
+    }
+
+    public Integer getLeaveConfirmed() {
+        return leaveConfirmed;
+    }
+
+    public void setLeaveConfirmed(Integer leaveConfirmed) {
+        this.leaveConfirmed = leaveConfirmed;
+    }
+
+    public Date getLeaveIssuedAt() {
+        return leaveIssuedAt;
+    }
+
+    public void setLeaveIssuedAt(Date leaveIssuedAt) {
+        this.leaveIssuedAt = leaveIssuedAt;
+    }
+
+    public Integer getCertificateConfirmed() {
+        return certificateConfirmed;
+    }
+
+    public void setCertificateConfirmed(Integer certificateConfirmed) {
+        this.certificateConfirmed = certificateConfirmed;
+    }
+
+    public Date getCertificateIssuedAt() {
+        return certificateIssuedAt;
+    }
+
+    public void setCertificateIssuedAt(Date certificateIssuedAt) {
+        this.certificateIssuedAt = certificateIssuedAt;
+    }
+
+    public String getActivityDepartment() {
+        return activityDepartment;
+    }
+
+    public void setActivityDepartment(String activityDepartment) {
+        this.activityDepartment = activityDepartment;
+    }
+
+    public String getActivityStatus() {
+        return activityStatus;
+    }
+
+    public void setActivityStatus(String activityStatus) {
+        this.activityStatus = activityStatus;
     }
 
     public Date getRegisterTime() {

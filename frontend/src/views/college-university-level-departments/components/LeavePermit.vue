@@ -2,12 +2,15 @@
 import { ref, onMounted } from 'vue'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import Button from '@/components/ui/button/button.vue'
-import { FileText, Download, AlertCircle } from 'lucide-vue-next'
+import { FileText, AlertCircle } from 'lucide-vue-next'
 import axios from 'axios'
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
 const registrations = ref([])
 const loading = ref(false)
 const errorMessage = ref('')
+const processingId = ref(null)
 
 const fetchRegistrations = async () => {
   // 核心修复：使用 headUsername
@@ -21,7 +24,7 @@ const fetchRegistrations = async () => {
   errorMessage.value = ''
 
   try {
-    const response = await axios.get(`http://localhost:8080/api/head/registrations/${username}`)
+    const response = await axios.get(`${API_BASE}/api/head/registrations/${username}`)
     if (response.data.code === 200) {
       // 只显示已审核通过的记录
       registrations.value = (response.data.data || []).filter(r => r.status === '已审核通过')
@@ -33,6 +36,28 @@ const fetchRegistrations = async () => {
     errorMessage.value = '网络错误，请稍后重试'
   } finally {
     loading.value = false
+  }
+}
+
+const confirmPermit = async (record) => {
+  const username = localStorage.getItem('headUsername')
+  if (!username) {
+    errorMessage.value = '未找到负责人登录信息，请重新登录'
+    return
+  }
+  processingId.value = record.id
+  try {
+    const res = await axios.put(`${API_BASE}/api/head/permit/${record.id}/confirm`, { username })
+    if (res.data.code === 200) {
+      await fetchRegistrations()
+    } else {
+      errorMessage.value = res.data.message || '出具失败'
+    }
+  } catch (e) {
+    console.error(e)
+    errorMessage.value = e?.response?.data?.message || '出具失败'
+  } finally {
+    processingId.value = null
   }
 }
 
@@ -77,12 +102,21 @@ onMounted(() => {
               </p>
             </div>
             <div class="flex items-center gap-3">
-              <span class="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-700">
-                已审核通过
+              <span
+                class="px-3 py-1 rounded-full text-sm font-medium"
+                :class="record.leaveConfirmed ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'"
+              >
+                {{ record.leaveConfirmed ? '已确认' : '未确认' }}
               </span>
-              <Button variant="outline" size="sm" class="gap-2">
-                <Download class="w-4 h-4" />
-                下载公假单
+              <Button
+                v-if="!record.leaveConfirmed"
+                variant="default"
+                size="sm"
+                class="gap-2"
+                :disabled="processingId === record.id"
+                @click="confirmPermit(record)"
+              >
+                {{ processingId === record.id ? '出具中...' : '出具公假单' }}
               </Button>
             </div>
           </div>

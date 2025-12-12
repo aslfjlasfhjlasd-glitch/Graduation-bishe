@@ -8,6 +8,9 @@ import com.university.volunteer.entity.VolunteerActivity;
 import com.university.volunteer.mapper.StudentActivityMapper;
 import com.university.volunteer.mapper.StudentMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +34,80 @@ public class StudentActivityService {
     public Result<List<ActivityPerformanceDTO>> getActivityPerformance(String studentId) {
         List<ActivityPerformanceDTO> list = studentActivityMapper.selectPerformanceByStudentId(studentId);
         return Result.success(list);
+    }
+
+    public Result<VolunteerActivity> getActivityDetail(Integer activityId) {
+        VolunteerActivity activity = studentActivityMapper.findActivityById(activityId);
+        if (activity == null) {
+            return Result.error("活动不存在");
+        }
+        // 兜底格式化：将时间字段转为字符串（避免前端解析 null 时报错）
+        if (activity.getHdSj() == null && activity.getHdKssj() != null && activity.getHdJssj() != null) {
+            activity.setHdSj(activity.getHdKssj() + " - " + activity.getHdJssj());
+        }
+        return Result.success(activity);
+    }
+
+    /**
+     * 学生对活动评分（1-5）
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public Result<String> rateActivity(String studentId, Integer registrationId, Integer rating) {
+        if (rating == null || rating < 1 || rating > 5) {
+            return Result.error("评分需在1-5之间");
+        }
+        // 校验归属
+        ActivityRegistration reg = studentActivityMapper.findRegistrationById(registrationId);
+        if (reg == null || !studentId.equals(reg.getStudentId())) {
+            return Result.error("无权评分该活动");
+        }
+        if (!"已审核通过".equals(reg.getStatus())) {
+            return Result.error("仅已审核通过的记录可评分");
+        }
+        int rows = studentActivityMapper.updateActivityRating(registrationId, studentId, rating);
+        return rows > 0 ? Result.success("评分成功") : Result.error("评分失败");
+    }
+
+    public Result<List<ActivityRegistration>> getConfirmedLeavePermits(String studentId) {
+        return Result.success(studentActivityMapper.selectConfirmedLeaveByStudent(studentId));
+    }
+
+    public Result<List<ActivityRegistration>> getConfirmedCertificates(String studentId) {
+        return Result.success(studentActivityMapper.selectConfirmedCertificateByStudent(studentId));
+    }
+
+    public ResponseEntity<byte[]> downloadLeavePermit(String studentId, Integer registrationId) {
+        ActivityRegistration reg = studentActivityMapper.findRegistrationById(registrationId);
+        if (reg == null || reg.getLeaveConfirmed() == null || reg.getLeaveConfirmed() != 1) {
+            return buildErrorFile("公假单未出具或记录不存在");
+        }
+        if (!reg.getStudentId().equals(studentId)) {
+            return buildErrorFile("无权下载该公假单");
+        }
+        String content = "公假单\n学生: " + reg.getStudentName()
+                + "\n学号: " + reg.getStudentId()
+                + "\n活动: " + reg.getActivityName()
+                + "\n时间: " + nullSafe(reg.getActivityTime())
+                + "\n出具时间: " + nullSafe(reg.getLeaveIssuedAt());
+        return buildPdf(content, "leave-permit-" + registrationId + ".pdf");
+    }
+
+    public ResponseEntity<byte[]> downloadCertificate(String studentId, Integer registrationId) {
+        ActivityRegistration reg = studentActivityMapper.findRegistrationById(registrationId);
+        if (reg == null || reg.getCertificateConfirmed() == null || reg.getCertificateConfirmed() != 1) {
+            return buildErrorFile("证明未出具或记录不存在");
+        }
+        if (!reg.getStudentId().equals(studentId)) {
+            return buildErrorFile("无权下载该证明");
+        }
+        String content = "志愿活动证明\n学生: " + reg.getStudentName()
+                + "\n学号: " + reg.getStudentId()
+                + "\n活动: " + reg.getActivityName()
+                + "\n参与时间: " + nullSafe(reg.getActivityTime())
+                + "\n服务时长: " + nullSafe(reg.getDuration()) + " 小时"
+                + "\n获得学分: " + nullSafe(reg.getCredits())
+                + "\n出具时间: " + nullSafe(reg.getCertificateIssuedAt());
+        return buildPdf(content, "certificate-" + registrationId + ".pdf");
     }
 
     /**
@@ -58,31 +135,44 @@ public class StudentActivityService {
             return Result.error("活动不存在");
         }
 
-        // 3. 检查活动状态
-        // 动态计算活动状态
+        // 3. 检查活动状态（统一口径：报名未开始/活动报名中/活动未开始/活动进行中/活动已结束）
         Date now = new Date();
-        String status = "未知";
-        if (activity.getBmKssj() != null && now.before(activity.getBmKssj())) {
+        String status;
+        if (activity.getBmKssj() == null || activity.getBmJssj() == null ||
+            activity.getHdKssj() == null || activity.getHdJssj() == null) {
+            // 时间字段不完整时不允许报名（避免“时间未配置”导致异常开放）
+            return Result.error("活动时间配置不完整，暂不可报名");
+        }
+
+        if (now.before(activity.getBmKssj())) {
             status = "报名未开始";
-        } else if (activity.getBmKssj() != null && activity.getBmJssj() != null && now.after(activity.getBmKssj()) && now.before(activity.getBmJssj())) {
-            status = "报名中";
-        } else if (activity.getHdKssj() != null && activity.getHdJssj() != null && now.after(activity.getHdKssj()) && now.before(activity.getHdJssj())) {
-            status = "进行中";
-        } else if (activity.getHdJssj() != null && now.after(activity.getHdJssj())) {
-            status = "已结束";
+        } else if (!now.after(activity.getBmJssj())) {
+            // now >= bmKssj && now <= bmJssj
+            status = "活动报名中";
+        } else if (now.before(activity.getHdKssj())) {
+            // now > bmJssj && now < hdKssj
+            status = "活动未开始";
+        } else if (!now.after(activity.getHdJssj())) {
+            // now >= hdKssj && now <= hdJssj
+            status = "活动进行中";
+        } else {
+            // now > hdJssj
+            status = "活动已结束";
         }
 
         if ("报名未开始".equals(status)) {
             return Result.error("报名尚未开始");
-        } else if ("进行中".equals(status)) {
-            return Result.error("活动正在进行中，无法报名");
-        } else if ("已结束".equals(status)) {
+        }
+        if ("活动未开始".equals(status)) {
+            return Result.error("报名已结束，活动尚未开始，无法报名");
+        }
+        if ("活动进行中".equals(status)) {
+            return Result.error("活动进行中，无法报名");
+        }
+        if ("活动已结束".equals(status)) {
             return Result.error("活动已结束，无法报名");
-        } else if (!"报名中".equals(status)) {
-            // 如果状态不明确（例如时间字段为空），根据业务需求决定是否允许报名
-            // 这里为了安全起见，如果不处于明确的"报名中"状态，则禁止报名
-            // 除非是某些特殊情况（如长期招募），需根据实际需求调整
-            // 假设如果没有设置报名时间，则不允许报名
+        }
+        if (!"活动报名中".equals(status)) {
             return Result.error("不在报名时间内");
         }
 
@@ -93,13 +183,16 @@ public class StudentActivityService {
         }
 
         // 5. 检查剩余名额
+        // 注意：这里检查的是"已审核通过"的人数，而不是所有报名记录
+        // 因为未审核的可能会被拒绝，不应该占用名额
         Integer maxCapacity = activity.getZmRs();
         if (maxCapacity == null) {
             maxCapacity = 0;
         }
 
-        int currentRegistered = studentActivityMapper.countRegistrationsByActivityId(activityId);
-        if (maxCapacity > 0 && currentRegistered >= maxCapacity) {
+        // 从缓存字段直接读取已审核通过的人数（由触发器维护）
+        int currentApproved = activity.getYbmRs() != null ? activity.getYbmRs() : 0;
+        if (maxCapacity > 0 && currentApproved >= maxCapacity) {
             return Result.error("活动名额已满");
         }
 
@@ -121,8 +214,9 @@ public class StudentActivityService {
             return Result.error("报名失败");
         }
 
-        // 8. 更新活动的已报名人数（YBM_RS字段）
-        studentActivityMapper.updateRegisteredCount(activityId);
+        // 8. 不需要手动更新 YBM_RS，触发器会自动处理
+        // 注意：INSERT 时状态为"未审核"，触发器不会增加人数（符合预期）
+        // 只有审核通过后，UPDATE 触发器才会增加人数
 
         return Result.success("报名成功");
     }
@@ -156,9 +250,31 @@ public class StudentActivityService {
             return Result.error("取消报名失败");
         }
 
-        // 4. 更新活动的已报名人数（YBM_RS字段）
-        studentActivityMapper.updateRegisteredCount(activityId);
+        // 4. 不需要手动更新 YBM_RS，DELETE 触发器会自动处理
+        // 注意：触发器只在原状态为"已审核通过"时才会减少人数
 
         return Result.success("取消报名成功");
+    }
+
+    private ResponseEntity<byte[]> buildPdf(String content, String filename) {
+        // 极简PDF：作为占位，满足下载格式要求
+        String pdf = "%PDF-1.4\n1 0 obj<<>>endobj\n2 0 obj<< /Length " + content.length() + " >>stream\n" + content + "\nendstream\nendobj\ntrailer<<>>\n%%EOF";
+        byte[] data = pdf.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDispositionFormData("attachment", filename);
+        return ResponseEntity.ok().headers(headers).body(data);
+    }
+
+    private ResponseEntity<byte[]> buildErrorFile(String message) {
+        byte[] data = message.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.TEXT_PLAIN);
+        headers.setContentDispositionFormData("attachment", "error.txt");
+        return ResponseEntity.ok().headers(headers).body(data);
+    }
+
+    private String nullSafe(Object o) {
+        return o == null ? "-" : o.toString();
     }
 }

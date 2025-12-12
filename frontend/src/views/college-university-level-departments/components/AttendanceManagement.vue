@@ -5,9 +5,18 @@ import Button from '@/components/ui/button/button.vue'
 import { Clock, AlertCircle } from 'lucide-vue-next'
 import axios from 'axios'
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+
 const registrations = ref([])
 const loading = ref(false)
 const errorMessage = ref('')
+const showEditModal = ref(false)
+const editingRecord = ref(null)
+const form = ref({
+  checkInTime: '',
+  checkOutTime: '',
+  attendanceStatus: 0
+})
 
 // 获取报名记录（用于考勤管理）
 // 获取报名记录（用于考勤管理）
@@ -22,7 +31,7 @@ const fetchRegistrations = async () => {
   errorMessage.value = ''
 
   try {
-    const response = await axios.get(`http://localhost:8080/api/head/registrations/${username}`)
+    const response = await axios.get(`${API_BASE}/api/head/registrations/${username}`)
     if (response.data.code === 200) {
       registrations.value = response.data.data || []
     } else {
@@ -34,6 +43,43 @@ const fetchRegistrations = async () => {
     errorMessage.value = '网络错误，请检查后端服务是否启动'
   } finally {
     loading.value = false
+  }
+}
+
+const formatInput = (dateStr) => {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  const iso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString()
+  return iso.slice(0, 16) // yyyy-MM-ddTHH:mm
+}
+
+const openEdit = (record) => {
+  editingRecord.value = record
+  form.value.checkInTime = formatInput(record.checkInTime)
+  form.value.checkOutTime = formatInput(record.checkOutTime)
+  form.value.attendanceStatus = record.attendanceStatus ?? 0
+  showEditModal.value = true
+}
+
+const submitEdit = async () => {
+  if (!editingRecord.value) return
+  const username = localStorage.getItem('headUsername')
+  if (!username) {
+    errorMessage.value = '未找到登录信息，请重新登录'
+    return
+  }
+  try {
+    await axios.put(`${API_BASE}/api/head/attendance/${editingRecord.value.id}`, {
+      username,
+      checkInTime: form.value.checkInTime ? new Date(form.value.checkInTime).getTime() : null,
+      checkOutTime: form.value.checkOutTime ? new Date(form.value.checkOutTime).getTime() : null,
+      attendanceStatus: Number(form.value.attendanceStatus)
+    })
+    showEditModal.value = false
+    await fetchRegistrations()
+  } catch (e) {
+    console.error(e)
+    errorMessage.value = e?.response?.data?.message || '更新考勤失败'
   }
 }
 
@@ -51,12 +97,25 @@ const formatTime = (time) => {
 
 // 获取考勤状态样式
 const getAttendanceStatusClass = (status) => {
-  switch (status) {
+  const text = displayAttendance(status)
+  switch (text) {
     case '正常': return 'bg-green-100 text-green-700'
     case '迟到': return 'bg-yellow-100 text-yellow-700'
     case '早退': return 'bg-orange-100 text-orange-700'
     case '缺勤': return 'bg-red-100 text-red-700'
     default: return 'bg-slate-100 text-slate-700'
+  }
+}
+
+const displayAttendance = (status) => {
+  if (status === null || status === undefined) return '未记录'
+  if (typeof status === 'string' && isNaN(Number(status))) return status
+  const code = Number(status)
+  switch (code) {
+    case 1: return '正常'
+    case 2: return '迟到'
+    case 3: return '缺勤'
+    default: return '未记录'
   }
 }
 
@@ -110,13 +169,12 @@ onMounted(() => {
                 <td class="py-3 px-4 text-sm text-slate-600">{{ formatTime(record.checkInTime) }}</td>
                 <td class="py-3 px-4 text-sm text-slate-600">{{ formatTime(record.checkOutTime) }}</td>
                 <td class="py-3 px-4">
-                  <span v-if="record.attendanceStatus" :class="['px-3 py-1 rounded-full text-sm font-medium', getAttendanceStatusClass(record.attendanceStatus)]">
-                    {{ record.attendanceStatus }}
+                  <span :class="['px-3 py-1 rounded-full text-sm font-medium', getAttendanceStatusClass(record.attendanceStatus)]">
+                    {{ displayAttendance(record.attendanceStatus) }}
                   </span>
-                  <span v-else class="text-slate-400 text-sm">未记录</span>
                 </td>
                 <td class="py-3 px-4">
-                  <Button variant="outline" size="sm">编辑</Button>
+                  <Button variant="outline" size="sm" @click="openEdit(record)">编辑</Button>
                 </td>
               </tr>
             </tbody>
@@ -124,5 +182,42 @@ onMounted(() => {
         </div>
       </CardContent>
     </Card>
+
+    <!-- 考勤编辑弹窗 -->
+    <div
+      v-if="showEditModal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+      @click.self="showEditModal = false"
+    >
+      <div class="w-full max-w-md rounded-lg bg-white shadow-xl">
+        <div class="flex items-center justify-between border-b px-4 py-3">
+          <h3 class="text-base font-semibold text-slate-800">编辑考勤</h3>
+          <button class="text-slate-500 hover:text-slate-700" aria-label="关闭" @click="showEditModal = false">✕</button>
+        </div>
+        <div class="px-4 py-4 space-y-3">
+          <label class="block text-sm text-slate-700">
+            签到时间
+            <input type="datetime-local" v-model="form.checkInTime" class="mt-1 w-full border rounded px-3 py-2 text-sm" />
+          </label>
+          <label class="block text-sm text-slate-700">
+            签退时间
+            <input type="datetime-local" v-model="form.checkOutTime" class="mt-1 w-full border rounded px-3 py-2 text-sm" />
+          </label>
+          <label class="block text-sm text-slate-700">
+            考勤状态
+            <select v-model="form.attendanceStatus" class="mt-1 w-full border rounded px-3 py-2 text-sm">
+              <option :value="0">未记录</option>
+              <option :value="1">正常</option>
+              <option :value="2">迟到</option>
+              <option :value="3">缺勤</option>
+            </select>
+          </label>
+        </div>
+        <div class="flex justify-end gap-2 border-t px-4 py-3">
+          <Button variant="outline" size="sm" @click="showEditModal = false">取消</Button>
+          <Button variant="default" size="sm" @click="submitEdit">保存</Button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>

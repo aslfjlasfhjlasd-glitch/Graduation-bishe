@@ -10,16 +10,32 @@ import java.util.List;
 @Mapper
 public interface StudentActivityMapper {
 
-    @Select("SELECT HD_BH as activityId, HD_MC as activityName, HD_SJ as activityTime, HD_DD as activityLocation, BM_ZT as status " +
+    @Select("SELECT HD_BH as activityId, HD_MC as activityName, HD_SJ as activityTime, HD_DD as activityLocation, BM_ZT as status, SH_LY as auditReason " +
             "FROM t_zyhdbmb " +
             "WHERE XS_XH = #{studentId}")
     List<ActivityRegistration> selectRegistrationsByStudentId(String studentId);
 
-    @Select("SELECT HD_BH as activityId, HD_MC as activityName, HD_SJ as activityTime, " +
-            "HD_SC as duration, HD_XF as credits " +
+    @Select("SELECT ID as registrationId, HD_BH as activityId, HD_MC as activityName, HD_SJ as activityTime, " +
+            "HD_SC as duration, HD_XF as credits, FZR_PF as leaderRating, ZYZ_PJ as leaderComment, XS_PF as activityRating " +
             "FROM t_zyhdbmb " +
             "WHERE XS_XH = #{studentId} AND BM_ZT = '已审核通过'")
     List<ActivityPerformanceDTO> selectPerformanceByStudentId(String studentId);
+
+    /**
+    * 已确认公假单列表
+    */
+    @Select("SELECT ID as id, HD_BH as activityId, HD_MC as activityName, HD_SJ as activityTime, HD_DD as activityLocation, " +
+            "XS_XM as studentName, XS_XH as studentId, GJD_ZT as leaveConfirmed, GJD_SJ as leaveIssuedAt, SH_LY as auditReason " +
+            "FROM t_zyhdbmb WHERE XS_XH = #{studentId} AND BM_ZT = '已审核通过' AND GJD_ZT = 1")
+    List<ActivityRegistration> selectConfirmedLeaveByStudent(String studentId);
+
+    /**
+    * 已确认证明列表
+    */
+    @Select("SELECT ID as id, HD_BH as activityId, HD_MC as activityName, HD_SJ as activityTime, HD_DD as activityLocation, " +
+            "XS_XM as studentName, XS_XH as studentId, HD_SC as duration, HD_XF as credits, ZM_ZT as certificateConfirmed, ZM_SJ as certificateIssuedAt " +
+            "FROM t_zyhdbmb WHERE XS_XH = #{studentId} AND BM_ZT = '已审核通过' AND ZM_ZT = 1")
+    List<ActivityRegistration> selectConfirmedCertificateByStudent(String studentId);
 
     /**
      * 根据ID获取活动信息（带标签，由XML实现）
@@ -33,8 +49,11 @@ public interface StudentActivityMapper {
     int countRegistration(@Param("studentId") String studentId, @Param("activityId") Integer activityId);
 
     /**
-     * 统计活动已报名人数
+     * 统计活动已报名人数（已废弃，建议直接读取 t_zyhd.YBM_RS 缓存字段）
+     * 注意：此方法统计的是所有报名记录，不区分审核状态，可能与业务语义不符
+     * 如需统计"已审核通过"的人数，使用：WHERE HD_BH = #{activityId} AND BM_ZT = '已审核通过'
      */
+    @Deprecated
     @Select("SELECT COUNT(*) FROM t_zyhdbmb WHERE HD_BH = #{activityId}")
     int countRegistrationsByActivityId(@Param("activityId") Integer activityId);
 
@@ -47,8 +66,9 @@ public interface StudentActivityMapper {
 
     /**
      * 更新活动已报名人数（YBM_RS字段）
+     * 注意：只统计"已审核通过"的记录，与触发器逻辑保持一致
      */
-    @Update("UPDATE t_zyhd SET YBM_RS = (SELECT COUNT(*) FROM t_zyhdbmb WHERE HD_BH = #{activityId}) WHERE HD_BH = #{activityId}")
+    @Update("UPDATE t_zyhd SET YBM_RS = (SELECT COUNT(*) FROM t_zyhdbmb WHERE HD_BH = #{activityId} AND BM_ZT = '已审核通过') WHERE HD_BH = #{activityId}")
     int updateRegisteredCount(@Param("activityId") Integer activityId);
 
     /**
@@ -67,13 +87,76 @@ public interface StudentActivityMapper {
      */
     @Select("SELECT r.ID as id, r.XS_XH as studentId, r.XS_XM as studentName, r.SS_XY as academyName, " +
             "r.HD_BH as activityId, r.HD_MC as activityName, r.HD_SJ as activityTime, r.HD_DD as activityLocation, " +
-            "r.BM_ZT as status, r.QD_SJ as checkInTime, r.QT_SJ as checkOutTime, r.QD_ZT as attendanceStatus, " +
-            "r.HD_SC as duration, r.HD_XF as credits, r.ZYZ_PJ as evaluation, r.PF as rating " +
+            "r.BM_ZT as status, r.SH_LY as auditReason, r.QD_SJ as checkInTime, r.QT_SJ as checkOutTime, r.QD_ZT as attendanceStatus, " +
+            "r.HD_SC as duration, r.HD_XF as credits, r.ZYZ_PJ as evaluation, r.FZR_PF as rating, r.GJD_ZT as leaveConfirmed, r.GJD_SJ as leaveIssuedAt, " +
+            "r.ZM_ZT as certificateConfirmed, r.ZM_SJ as certificateIssuedAt, a.HD_ZT as activityStatus " +
             "FROM t_zyhdbmb r " +
             "INNER JOIN t_zyhd a ON r.HD_BH = a.HD_BH " +
             "WHERE a.HD_FQ_DW = #{department} " +
             "ORDER BY r.ID DESC")
     List<ActivityRegistration> findRegistrationsByDepartment(@Param("department") String department);
+
+    /**
+     * 根据报名记录ID获取详情（含负责人部门校验字段）
+     */
+    @Select("SELECT r.ID as id, r.XS_XH as studentId, r.XS_XM as studentName, r.SS_XY as academyName, " +
+            "r.HD_BH as activityId, r.HD_MC as activityName, r.HD_SJ as activityTime, r.HD_DD as activityLocation, " +
+            "r.BM_ZT as status, r.SH_LY as auditReason, r.QD_SJ as checkInTime, r.QT_SJ as checkOutTime, r.QD_ZT as attendanceStatus, " +
+            "r.HD_SC as duration, r.HD_XF as credits, r.ZYZ_PJ as evaluation, r.FZR_PF as rating, a.HD_FQ_DW as activityDepartment, " +
+            "r.GJD_ZT as leaveConfirmed, r.GJD_SJ as leaveIssuedAt, r.ZM_ZT as certificateConfirmed, r.ZM_SJ as certificateIssuedAt, a.HD_ZT as activityStatus " +
+            "FROM t_zyhdbmb r " +
+            "INNER JOIN t_zyhd a ON r.HD_BH = a.HD_BH " +
+            "WHERE r.ID = #{registrationId}")
+    ActivityRegistration findRegistrationById(@Param("registrationId") Integer registrationId);
+
+    /**
+     * 更新考勤信息
+     */
+    @Update("UPDATE t_zyhdbmb SET QD_SJ = #{checkInTime}, QT_SJ = #{checkOutTime}, QD_ZT = #{attendanceStatus} WHERE ID = #{registrationId}")
+    int updateAttendance(@Param("registrationId") Integer registrationId,
+                         @Param("checkInTime") java.util.Date checkInTime,
+                         @Param("checkOutTime") java.util.Date checkOutTime,
+                         @Param("attendanceStatus") Integer attendanceStatus);
+
+    /**
+     * 确认工时与学分
+     */
+    @Update("UPDATE t_zyhdbmb SET HD_SC = #{duration}, HD_XF = #{credits} WHERE ID = #{registrationId}")
+    int updateDurationAndCredits(@Param("registrationId") Integer registrationId,
+                                 @Param("duration") Double duration,
+                                 @Param("credits") Double credits);
+
+    /**
+     * 评价志愿者
+     */
+    @Update("UPDATE t_zyhdbmb SET ZYZ_PJ = #{evaluation}, FZR_PF = #{rating} WHERE ID = #{registrationId}")
+    int updateEvaluation(@Param("registrationId") Integer registrationId,
+                         @Param("evaluation") String evaluation,
+                         @Param("rating") Integer rating);
+
+    /**
+     * 学生对活动评分
+     */
+    @Update("UPDATE t_zyhdbmb SET XS_PF = #{rating} WHERE ID = #{registrationId} AND XS_XH = #{studentId}")
+    int updateActivityRating(@Param("registrationId") Integer registrationId,
+                             @Param("studentId") String studentId,
+                             @Param("rating") Integer rating);
+
+    /**
+     * 确认公假单
+     */
+    @Update("UPDATE t_zyhdbmb SET GJD_ZT = #{confirmed}, GJD_SJ = #{issuedAt} WHERE ID = #{registrationId}")
+    int updateLeaveConfirm(@Param("registrationId") Integer registrationId,
+                           @Param("confirmed") Integer confirmed,
+                           @Param("issuedAt") java.util.Date issuedAt);
+
+    /**
+     * 确认证明
+     */
+    @Update("UPDATE t_zyhdbmb SET ZM_ZT = #{confirmed}, ZM_SJ = #{issuedAt} WHERE ID = #{registrationId}")
+    int updateCertificateConfirm(@Param("registrationId") Integer registrationId,
+                                 @Param("confirmed") Integer confirmed,
+                                 @Param("issuedAt") java.util.Date issuedAt);
 
     /**
      * 更新活动信息

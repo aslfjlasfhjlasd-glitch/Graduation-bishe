@@ -4,10 +4,15 @@ import com.university.volunteer.common.Result;
 import com.university.volunteer.entity.*;
 import com.university.volunteer.mapper.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -197,25 +202,23 @@ public class DepartmentHeadService {
     private String calculateActivityStatus(VolunteerActivity activity, java.util.Date now) {
         if (activity.getBmKssj() == null || activity.getBmJssj() == null ||
             activity.getHdKssj() == null || activity.getHdJssj() == null) {
-            return "未开始";
+            return "报名未开始";
         }
 
-        // 判断活动状态
+        // 统一口径：报名未开始/活动报名中/活动未开始/活动进行中/活动已结束
         if (now.before(activity.getBmKssj())) {
-            // 当前时间在报名开始之前
-            return "未开始";
-        } else if (now.after(activity.getBmKssj()) && now.before(activity.getBmJssj())) {
-            // 当前时间在报名时间段内
-            return "报名中";
-        } else if (now.after(activity.getHdKssj()) && now.before(activity.getHdJssj())) {
-            // 当前时间在活动时间段内
-            return "进行中";
-        } else if (now.after(activity.getHdJssj())) {
-            // 当前时间在活动结束之后
-            return "已结束";
+            return "报名未开始";
+        } else if (!now.after(activity.getBmJssj())) {
+            // now >= bmKssj && now <= bmJssj
+            return "活动报名中";
+        } else if (now.before(activity.getHdKssj())) {
+            // now > bmJssj && now < hdKssj
+            return "活动未开始";
+        } else if (!now.after(activity.getHdJssj())) {
+            // now >= hdKssj && now <= hdJssj
+            return "活动进行中";
         } else {
-            // 报名已结束但活动未开始
-            return "未开始";
+            return "活动已结束";
         }
     }
 
@@ -223,20 +226,25 @@ public class DepartmentHeadService {
      * 根据负责人获取报名记录列表（用于各种管理功能）
      */
     public Result<List<ActivityRegistration>> getRegistrationsByHead(String username) {
-        // 先获取负责人信息以确定部门/学院名称
-        Result<Map<String, Object>> headInfoResult = getHeadInfo(username);
-        if (headInfoResult.getCode() != 200) {
-            return Result.error("获取负责人信息失败");
-        }
+        try {
+            // 先获取负责人信息以确定部门/学院名称
+            Result<Map<String, Object>> headInfoResult = getHeadInfo(username);
+            if (headInfoResult.getCode() != 200 || headInfoResult.getData() == null) {
+                return Result.error("获取负责人信息失败");
+            }
 
-        String department = (String) headInfoResult.getData().get("department");
-        if (department == null || department.isEmpty()) {
-            return Result.error("未找到部门/学院信息");
-        }
+            String department = (String) headInfoResult.getData().get("department");
+            if (department == null || department.isEmpty()) {
+                return Result.error("未找到部门/学院信息");
+            }
 
-        // 根据部门/学院名称查询报名记录
-        List<ActivityRegistration> registrations = studentActivityMapper.findRegistrationsByDepartment(department);
-        return Result.success(registrations);
+            // 根据部门/学院名称查询报名记录
+            List<ActivityRegistration> registrations = studentActivityMapper.findRegistrationsByDepartment(department);
+            return Result.success(registrations);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取报名记录失败：" + e.getMessage());
+        }
     }
 
     /**
@@ -413,8 +421,8 @@ public class DepartmentHeadService {
         Admin admin = adminMapper.findByUsername(username);
         if (admin != null) {
             isAdmin = true;
-            // 管理员使用"校级管理"作为发起单位
-            department = "校级管理";
+            // 管理员统一使用“国志协”作为发起单位
+            department = "国志协";
         } else {
             // 2. 获取负责人信息以确定发起单位
             Result<Map<String, Object>> headInfoResult = getHeadInfo(username);
@@ -513,5 +521,194 @@ public class DepartmentHeadService {
         } else {
             return Result.error("创建活动失败");
         }
+    }
+
+    /**
+     * 更新考勤（签到/签退/考勤状态）
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public Result<String> updateAttendance(String username, Integer registrationId, Long checkInMillis, Long checkOutMillis, Integer attendanceStatus) {
+        Result<ActivityRegistration> check = loadAndCheckRegistration(username, registrationId);
+        if (check.getCode() != 200) {
+            return Result.error(check.getMessage());
+        }
+
+        Date checkIn = checkInMillis != null ? new Date(checkInMillis) : check.getData().getCheckInTime();
+        Date checkOut = checkOutMillis != null ? new Date(checkOutMillis) : check.getData().getCheckOutTime();
+
+        // 考勤状态允许为空，空则默认0（未签）
+        Integer statusCode = attendanceStatus == null ? 0 : attendanceStatus;
+        if (statusCode < 0 || statusCode > 3) {
+            return Result.error("考勤状态非法，应为 0-3");
+        }
+
+        int rows = studentActivityMapper.updateAttendance(registrationId, checkIn, checkOut, statusCode);
+        return rows > 0 ? Result.success("考勤已更新") : Result.error("考勤更新失败");
+    }
+
+    /**
+     * 确认或修改工时学分
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public Result<String> confirmDurationAndCredits(String username, Integer registrationId, Double duration, Double credits) {
+        Result<ActivityRegistration> check = loadAndCheckRegistration(username, registrationId);
+        if (check.getCode() != 200) {
+            return Result.error(check.getMessage());
+        }
+
+        ActivityRegistration reg = check.getData();
+        // 若未手动传入，尝试根据签到签退计算
+        Double finalDuration = duration;
+        if (finalDuration == null || finalDuration < 0) {
+            if (reg.getCheckInTime() != null && reg.getCheckOutTime() != null) {
+                long diff = reg.getCheckOutTime().getTime() - reg.getCheckInTime().getTime();
+                finalDuration = Math.max(0d, Math.round(diff / (1000 * 60 * 60.0) * 10d) / 10d);
+            } else {
+                finalDuration = 0d;
+            }
+        }
+
+        Double finalCredits = credits == null ? 0d : credits;
+        if (finalCredits < 0) {
+            return Result.error("学分不能为负数");
+        }
+
+        int rows = studentActivityMapper.updateDurationAndCredits(registrationId, finalDuration, finalCredits);
+        return rows > 0 ? Result.success("工时/学分已更新") : Result.error("更新失败");
+    }
+
+    /**
+     * 评价志愿者
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public Result<String> evaluateVolunteer(String username, Integer registrationId, Integer rating, String evaluation) {
+        Result<ActivityRegistration> check = loadAndCheckRegistration(username, registrationId);
+        if (check.getCode() != 200) {
+            return Result.error(check.getMessage());
+        }
+
+        if (rating != null && (rating < 1 || rating > 5)) {
+            return Result.error("评分需在1-5之间");
+        }
+        int finalRating = rating == null ? 5 : rating;
+
+        int rows = studentActivityMapper.updateEvaluation(registrationId, evaluation, finalRating);
+        return rows > 0 ? Result.success("评价已提交") : Result.error("评价失败");
+    }
+
+    /**
+     * 确认公假单
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public Result<String> confirmLeavePermit(String username, Integer registrationId) {
+        Result<ActivityRegistration> check = loadAndCheckRegistration(username, registrationId);
+        if (check.getCode() != 200) {
+            return Result.error(check.getMessage());
+        }
+        int rows = studentActivityMapper.updateLeaveConfirm(registrationId, 1, new Date());
+        return rows > 0 ? Result.success("公假单已出具") : Result.error("出具失败");
+    }
+
+    /**
+     * 确认证明
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public Result<String> confirmCertificate(String username, Integer registrationId) {
+        Result<ActivityRegistration> check = loadAndCheckRegistration(username, registrationId);
+        if (check.getCode() != 200) {
+            return Result.error(check.getMessage());
+        }
+        int rows = studentActivityMapper.updateCertificateConfirm(registrationId, 1, new Date());
+        return rows > 0 ? Result.success("证明已出具") : Result.error("出具失败");
+    }
+
+    /**
+     * 导出公假单
+     */
+    public ResponseEntity<byte[]> exportLeavePermit(String username, Integer registrationId) {
+        Result<ActivityRegistration> check = loadAndCheckRegistration(username, registrationId);
+        if (check.getCode() != 200) {
+            return buildErrorFile(check.getMessage(), "permit-error.txt");
+        }
+        ActivityRegistration reg = check.getData();
+        String content = "公假单\n"
+                + "学生姓名: " + reg.getStudentName() + "\n"
+                + "学号: " + reg.getStudentId() + "\n"
+                + "学院: " + reg.getAcademyName() + "\n"
+                + "活动: " + reg.getActivityName() + "\n"
+                + "时间: " + nullSafe(reg.getActivityTime()) + "\n"
+                + "地点: " + nullSafe(reg.getActivityLocation()) + "\n"
+                + "审核状态: " + nullSafe(reg.getStatus()) + "\n"
+                + "审核/驳回理由: " + nullSafe(reg.getAuditReason()) + "\n"
+                + "出具时间: " + new Date() + "\n";
+        return buildFile(content, "leave-permit-" + registrationId + ".txt");
+    }
+
+    /**
+     * 导出参与/学分证明
+     */
+    public ResponseEntity<byte[]> exportCertificate(String username, Integer registrationId, boolean withCredits) {
+        Result<ActivityRegistration> check = loadAndCheckRegistration(username, registrationId);
+        if (check.getCode() != 200) {
+            return buildErrorFile(check.getMessage(), "certificate-error.txt");
+        }
+        ActivityRegistration reg = check.getData();
+        String title = withCredits ? "志愿活动学分证明" : "志愿活动参与证明";
+        String content = title + "\n"
+                + "学生姓名: " + reg.getStudentName() + "\n"
+                + "学号: " + reg.getStudentId() + "\n"
+                + "学院: " + reg.getAcademyName() + "\n"
+                + "活动: " + reg.getActivityName() + "\n"
+                + "时间: " + nullSafe(reg.getActivityTime()) + "\n"
+                + "地点: " + nullSafe(reg.getActivityLocation()) + "\n"
+                + "工时: " + (reg.getDuration() == null ? "-" : reg.getDuration() + " 小时") + "\n";
+        if (withCredits) {
+            content += "学分: " + (reg.getCredits() == null ? "0" : reg.getCredits()) + "\n";
+        }
+        content += "评价: " + nullSafe(reg.getEvaluation()) + "\n"
+                + "评分: " + (reg.getRating() == null ? "-" : reg.getRating()) + "\n"
+                + "出具时间: " + new Date() + "\n";
+        String filename = withCredits ? "credit-certificate-" + registrationId + ".txt"
+                : "participation-certificate-" + registrationId + ".txt";
+        return buildFile(content, filename);
+    }
+
+    /**
+     * 权限校验：报名记录是否属于该负责人所在部门
+     */
+    private Result<ActivityRegistration> loadAndCheckRegistration(String username, Integer registrationId) {
+        if (registrationId == null) {
+            return Result.error("报名ID不能为空");
+        }
+        ActivityRegistration reg = studentActivityMapper.findRegistrationById(registrationId);
+        if (reg == null) {
+            return Result.error("报名记录不存在");
+        }
+
+        Result<Map<String, Object>> headInfo = getHeadInfo(username);
+        if (headInfo.getCode() != 200) {
+            return Result.error("获取负责人信息失败");
+        }
+        String dept = (String) headInfo.getData().get("department");
+        if (dept == null || reg.getActivityDepartment() == null || !dept.equals(reg.getActivityDepartment())) {
+            return Result.error("无权限操作该报名记录");
+        }
+        return Result.success(reg);
+    }
+
+    private ResponseEntity<byte[]> buildFile(String content, String filename) {
+        byte[] data = content.getBytes(StandardCharsets.UTF_8);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        headers.setContentDispositionFormData("attachment", filename);
+        return ResponseEntity.ok().headers(headers).body(data);
+    }
+
+    private ResponseEntity<byte[]> buildErrorFile(String message, String filename) {
+        return buildFile("导出失败：" + message, filename);
+    }
+
+    private String nullSafe(Object obj) {
+        return obj == null ? "-" : obj.toString();
     }
 }

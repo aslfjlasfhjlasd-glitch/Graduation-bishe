@@ -6,6 +6,15 @@ import Input from '@/components/ui/input/Input.vue'
 import { Plus, Edit, Trash2, Calendar, MapPin, Users, AlertCircle, X, Archive, Upload } from 'lucide-vue-next'
 import axios from 'axios'
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+
+const props = defineProps({
+  forceAdmin: {
+    type: Boolean,
+    default: false
+  }
+})
+
 const activities = ref([])
 const loading = ref(false)
 const errorMessage = ref('')
@@ -14,11 +23,12 @@ const showCreateDialog = ref(false)
 const editingActivity = ref(null)
 const newActivity = ref(null)
 const successMessage = ref('')
+const createErrorMessage = ref('')
 let messageTimer = null
 
 // 判断当前用户角色
 const userRole = ref(localStorage.getItem('userRole') || 'head')
-const isAdmin = computed(() => userRole.value === 'superadmin')
+const isAdmin = computed(() => props.forceAdmin || userRole.value === 'superadmin')
 
 // 显示消息并自动隐藏
 const showMessage = (type, message) => {
@@ -49,7 +59,7 @@ const fetchActivities = async () => {
     let response
     if (isAdmin.value) {
       // 管理员获取所有活动
-      response = await axios.get('http://localhost:8080/api/admin/activities')
+      response = await axios.get(`${API_BASE}/api/admin/activities`)
     } else {
       // 负责人获取本单位活动
       const username = localStorage.getItem('headUsername')
@@ -58,7 +68,7 @@ const fetchActivities = async () => {
         loading.value = false
         return
       }
-      response = await axios.get(`http://localhost:8080/api/head/activities/${username}`)
+      response = await axios.get(`${API_BASE}/api/head/activities/${username}`)
     }
     
     if (response.data.code === 200) {
@@ -212,6 +222,7 @@ const saveEdit = async () => {
   loading.value = true
   errorMessage.value = ''
   successMessage.value = ''
+  createErrorMessage.value = ''
 
   try {
     // 转换日期格式
@@ -223,7 +234,7 @@ const saveEdit = async () => {
       hdJssj: new Date(editingActivity.value.hdJssj).toISOString()
     }
 
-    const response = await axios.put('http://localhost:8080/api/head/activity', activityData)
+    const response = await axios.put(`${API_BASE}/api/head/activity`, activityData)
     
     if (response.data.code === 200) {
       showMessage('success', '活动更新成功')
@@ -277,7 +288,7 @@ const saveCreate = async () => {
       hdBz: newActivity.value.hdBz || ''
     }
 
-    const response = await axios.post('http://localhost:8080/api/head/activity', {
+    const response = await axios.post(`${API_BASE}/api/head/activity`, {
       username: username,
       activity: activityData
     })
@@ -287,11 +298,11 @@ const saveCreate = async () => {
       closeCreateDialog()
       await fetchActivities()
     } else {
-      showMessage('error', response.data.message || '创建失败')
+      createErrorMessage.value = response.data.message || '创建失败'
     }
   } catch (error) {
     console.error('创建活动失败:', error)
-    showMessage('error', '网络错误，请稍后重试')
+    createErrorMessage.value = error?.response?.data?.message || '网络错误，请稍后重试'
   } finally {
     loading.value = false
   }
@@ -308,7 +319,7 @@ const deleteActivity = async (activityId, activityName) => {
   successMessage.value = ''
 
   try {
-    const response = await axios.delete(`http://localhost:8080/api/head/activity/${activityId}`)
+    const response = await axios.delete(`${API_BASE}/api/head/activity/${activityId}`)
     
     if (response.data.code === 200) {
       showMessage('success', '活动删除成功')
@@ -335,7 +346,7 @@ const submitActivity = async (activity) => {
   successMessage.value = ''
 
   try {
-    const response = await axios.put(`http://localhost:8080/api/head/activity/${activity.hdBh}/submit`)
+    const response = await axios.put(`${API_BASE}/api/head/activity/${activity.hdBh}/submit`)
     
     if (response.data.code === 200) {
       showMessage('success', '活动已申报，等待管理员审核')
@@ -362,7 +373,7 @@ const cancelSubmitActivity = async (activity) => {
   successMessage.value = ''
 
   try {
-    const response = await axios.put(`http://localhost:8080/api/head/activity/${activity.hdBh}/cancel-submit`)
+    const response = await axios.put(`${API_BASE}/api/head/activity/${activity.hdBh}/cancel-submit`)
     
     if (response.data.code === 200) {
       showMessage('success', '已撤销申报')
@@ -666,6 +677,25 @@ onMounted(() => {
           <button @click="closeCreateDialog" class="text-slate-400 hover:text-slate-600">
             <X class="w-6 h-6" />
           </button>
+        </div>
+
+        <!-- 创建错误弹窗（覆盖在创建窗之上并居中） -->
+        <div
+          v-if="createErrorMessage"
+          class="absolute inset-0 z-50 flex items-center justify-center"
+        >
+          <div class="bg-white shadow-2xl rounded-lg border border-red-200 w-full max-w-md mx-auto">
+            <div class="px-4 py-3 border-b border-red-100 flex items-center gap-2">
+              <AlertCircle class="w-5 h-5 text-red-600" />
+              <span class="text-sm font-semibold text-red-700">保存失败</span>
+            </div>
+            <div class="px-4 py-4 text-sm text-red-700 whitespace-pre-line">
+              {{ createErrorMessage }}
+            </div>
+            <div class="px-4 py-3 border-t border-red-100 flex justify-end">
+              <Button variant="outline" size="sm" @click="createErrorMessage = ''">知道了</Button>
+            </div>
+          </div>
         </div>
 
         <div v-if="newActivity" class="p-6 space-y-6">

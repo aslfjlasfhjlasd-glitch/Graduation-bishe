@@ -5,9 +5,17 @@ import Button from '@/components/ui/button/button.vue'
 import { Award, AlertCircle } from 'lucide-vue-next'
 import axios from 'axios'
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+
 const registrations = ref([])
 const loading = ref(false)
 const errorMessage = ref('')
+const showModal = ref(false)
+const editingRecord = ref(null)
+const form = ref({
+  duration: '',
+  credits: ''
+})
 
 const fetchRegistrations = async () => {
   const username = localStorage.getItem('headUsername') // 修正
@@ -20,7 +28,7 @@ const fetchRegistrations = async () => {
   errorMessage.value = ''
 
   try {
-    const response = await axios.get(`http://localhost:8080/api/head/registrations/${username}`)
+    const response = await axios.get(`${API_BASE}/api/head/registrations/${username}`)
     if (response.data.code === 200) {
       // 只显示有考勤记录的
       registrations.value = (response.data.data || []).filter(r => r.checkInTime && r.checkOutTime)
@@ -47,6 +55,35 @@ const getStatusClass = (duration, credits) => {
   if (credits > 0) return 'bg-green-100 text-green-700'
   if (duration > 0) return 'bg-yellow-100 text-yellow-700'
   return 'bg-slate-100 text-slate-700'
+}
+
+const openConfirm = (record) => {
+  editingRecord.value = record
+  const dur = record.duration ?? Number(calculateDuration(record.checkInTime, record.checkOutTime))
+  form.value.duration = dur || 0
+  form.value.credits = record.credits || ''
+  showModal.value = true
+}
+
+const submitConfirm = async () => {
+  if (!editingRecord.value) return
+  const username = localStorage.getItem('headUsername')
+  if (!username) {
+    errorMessage.value = '未找到登录信息，请重新登录'
+    return
+  }
+  try {
+    await axios.put(`${API_BASE}/api/head/credits/${editingRecord.value.id}`, {
+      username,
+      duration: Number(form.value.duration || 0),
+      credits: Number(form.value.credits || 0)
+    })
+    showModal.value = false
+    await fetchRegistrations()
+  } catch (e) {
+    console.error(e)
+    errorMessage.value = e?.response?.data?.message || '工时学分更新失败'
+  }
 }
 
 onMounted(() => {
@@ -110,8 +147,8 @@ onMounted(() => {
                   </span>
                 </td>
                 <td class="py-3 px-4">
-                  <Button v-if="!record.credits" variant="default" size="sm">确认</Button>
-                  <Button v-else variant="outline" size="sm">修改</Button>
+                  <Button v-if="!record.credits" variant="default" size="sm" @click="openConfirm(record)">确认</Button>
+                  <Button v-else variant="outline" size="sm" @click="openConfirm(record)">修改</Button>
                 </td>
               </tr>
             </tbody>
@@ -119,5 +156,33 @@ onMounted(() => {
         </div>
       </CardContent>
     </Card>
+
+    <!-- 工时学分确认弹窗 -->
+    <div
+      v-if="showModal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+      @click.self="showModal = false"
+    >
+      <div class="w-full max-w-md rounded-lg bg-white shadow-xl">
+        <div class="flex items-center justify-between border-b px-4 py-3">
+          <h3 class="text-base font-semibold text-slate-800">确认工时学分</h3>
+          <button class="text-slate-500 hover:text-slate-700" aria-label="关闭" @click="showModal = false">✕</button>
+        </div>
+        <div class="px-4 py-4 space-y-3">
+          <label class="block text-sm text-slate-700">
+            工时（小时）
+            <input type="number" min="0" step="0.1" v-model="form.duration" class="mt-1 w-full border rounded px-3 py-2 text-sm" />
+          </label>
+          <label class="block text-sm text-slate-700">
+            学分
+            <input type="number" min="0" step="0.1" v-model="form.credits" class="mt-1 w-full border rounded px-3 py-2 text-sm" />
+          </label>
+        </div>
+        <div class="flex justify-end gap-2 border-t px-4 py-3">
+          <Button variant="outline" size="sm" @click="showModal = false">取消</Button>
+          <Button variant="default" size="sm" @click="submitConfirm">保存</Button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>

@@ -229,7 +229,7 @@ const handleLogout = () => {
         <div class="max-w-7xl mx-auto space-y-8">
 
           <DashboardHome v-if="activeMenu === 'dashboard'" />
-          <ActivityDesign v-else-if="activeMenu === 'activity-design'" />
+          <ActivityDesign v-else-if="activeMenu === 'activity-design'" :force-admin="true" />
           <ActivityManagement v-else-if="activeMenu === 'activity-management'" />
           <VolunteerReview v-else-if="activeMenu === 'activity-review'" />
           <DashboardMaintenance v-else-if="activeMenu === 'dashboard-maintenance'" />

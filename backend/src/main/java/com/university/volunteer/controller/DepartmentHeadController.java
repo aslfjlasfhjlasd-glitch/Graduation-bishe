@@ -4,6 +4,7 @@ import com.university.volunteer.common.Result;
 import com.university.volunteer.entity.VolunteerActivity;
 import com.university.volunteer.service.DepartmentHeadService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -93,7 +94,12 @@ public class DepartmentHeadController {
      */
     @GetMapping("/registrations/{username}")
     public Result<?> getRegistrationsByHead(@PathVariable String username) {
-        return departmentHeadService.getRegistrationsByHead(username);
+        try {
+            return departmentHeadService.getRegistrationsByHead(username);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return com.university.volunteer.common.Result.error("获取报名记录失败：" + e.getMessage());
+        }
     }
 
     /**
@@ -112,6 +118,82 @@ public class DepartmentHeadController {
     @DeleteMapping("/activity/{activityId}")
     public Result<String> deleteActivity(@PathVariable Integer activityId) {
         return departmentHeadService.deleteActivity(activityId);
+    }
+
+    /**
+     * 更新考勤
+     */
+    @PutMapping("/attendance/{registrationId}")
+    public Result<String> updateAttendance(@PathVariable Integer registrationId,
+                                           @RequestBody Map<String, Object> body) {
+        String username = (String) body.get("username");
+        Long checkInTime = body.get("checkInTime") == null ? null : Long.parseLong(body.get("checkInTime").toString());
+        Long checkOutTime = body.get("checkOutTime") == null ? null : Long.parseLong(body.get("checkOutTime").toString());
+        Integer attendanceStatus = body.get("attendanceStatus") == null ? null : Integer.parseInt(body.get("attendanceStatus").toString());
+        return departmentHeadService.updateAttendance(username, registrationId, checkInTime, checkOutTime, attendanceStatus);
+    }
+
+    /**
+     * 确认工时学分
+     */
+    @PutMapping("/credits/{registrationId}")
+    public Result<String> confirmCredits(@PathVariable Integer registrationId,
+                                         @RequestBody Map<String, Object> body) {
+        String username = (String) body.get("username");
+        Double duration = body.get("duration") == null ? null : Double.parseDouble(body.get("duration").toString());
+        Double credits = body.get("credits") == null ? null : Double.parseDouble(body.get("credits").toString());
+        return departmentHeadService.confirmDurationAndCredits(username, registrationId, duration, credits);
+    }
+
+    /**
+     * 评价志愿者
+     */
+    @PutMapping("/evaluation/{registrationId}")
+    public Result<String> evaluateVolunteer(@PathVariable Integer registrationId,
+                                            @RequestBody Map<String, Object> body) {
+        String username = (String) body.get("username");
+        Integer rating = body.get("rating") == null ? null : Integer.parseInt(body.get("rating").toString());
+        String evaluation = (String) body.get("evaluation");
+        return departmentHeadService.evaluateVolunteer(username, registrationId, rating, evaluation);
+    }
+
+    /**
+     * 确认公假单
+     */
+    @PutMapping("/permit/{registrationId}/confirm")
+    public Result<String> confirmLeavePermit(@PathVariable Integer registrationId,
+                                             @RequestBody Map<String, Object> body) {
+        String username = (String) body.get("username");
+        return departmentHeadService.confirmLeavePermit(username, registrationId);
+    }
+
+    /**
+     * 确认证明
+     */
+    @PutMapping("/certificate/{registrationId}/confirm")
+    public Result<String> confirmCertificate(@PathVariable Integer registrationId,
+                                             @RequestBody Map<String, Object> body) {
+        String username = (String) body.get("username");
+        return departmentHeadService.confirmCertificate(username, registrationId);
+    }
+
+    /**
+     * 导出公假单
+     */
+    @GetMapping("/permit/{registrationId}")
+    public ResponseEntity<byte[]> exportLeavePermit(@PathVariable Integer registrationId,
+                                                    @RequestParam String username) {
+        return departmentHeadService.exportLeavePermit(username, registrationId);
+    }
+
+    /**
+     * 导出参与证明
+     */
+    @GetMapping("/certificate/{registrationId}")
+    public ResponseEntity<byte[]> exportCertificate(@PathVariable Integer registrationId,
+                                                    @RequestParam String username,
+                                                    @RequestParam(defaultValue = "false") boolean credits) {
+        return departmentHeadService.exportCertificate(username, registrationId, credits);
     }
 
     /**
