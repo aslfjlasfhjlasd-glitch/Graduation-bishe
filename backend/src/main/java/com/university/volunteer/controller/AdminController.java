@@ -2,12 +2,16 @@ package com.university.volunteer.controller;
 
 import com.university.volunteer.common.Result;
 import com.university.volunteer.dto.VolunteerAuditDTO;
+import com.university.volunteer.entity.Config;
 import com.university.volunteer.entity.VolunteerActivity;
 import com.university.volunteer.service.AdminService;
+import com.university.volunteer.service.ConfigService;
+import com.university.volunteer.service.MockDataService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -15,6 +19,12 @@ public class AdminController {
 
     @Autowired
     private AdminService adminService;
+
+    @Autowired
+    private ConfigService configService;
+
+    @Autowired
+    private MockDataService mockDataService;
 
     /**
      * 获取所有活动列表（管理员可以查看所有活动）
@@ -79,5 +89,161 @@ public class AdminController {
                                                       @RequestBody(required = false) java.util.Map<String, String> payload) {
         String reason = payload != null ? payload.getOrDefault("reason", null) : null;
         return adminService.rejectVolunteerRegistration(registrationId, reason);
+    }
+
+    // ==================== 配置管理接口 ====================
+
+    /**
+     * 获取所有配置项列表（用于维护界面）
+     * @return 配置列表
+     */
+    @GetMapping("/config/list")
+    public Result<List<Config>> getConfigList() {
+        try {
+            List<Config> configs = configService.getAllConfigs();
+            return Result.success(configs);
+        } catch (Exception e) {
+            return Result.error("获取配置列表失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取所有配置项（Map格式，用于大屏展示）
+     * @return 配置Map
+     */
+    @GetMapping("/config/map")
+    public Result<Map<String, String>> getConfigMap() {
+        try {
+            Map<String, String> configMap = configService.getAllConfigsAsMap();
+            return Result.success(configMap);
+        } catch (Exception e) {
+            return Result.error("获取配置失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 根据配置键获取配置值
+     * @param configKey 配置键
+     * @return 配置值
+     */
+    @GetMapping("/config/{configKey}")
+    public Result<String> getConfigValue(@PathVariable String configKey) {
+        try {
+            String value = configService.getConfigValue(configKey);
+            if (value != null) {
+                return Result.success(value);
+            } else {
+                return Result.error("配置项不存在");
+            }
+        } catch (Exception e) {
+            return Result.error("获取配置失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 更新单个配置
+     * @param configKey 配置键
+     * @param payload 包含配置值的请求体
+     * @return 更新结果
+     */
+    @PutMapping("/config/{configKey}")
+    public Result<String> updateConfig(@PathVariable String configKey,
+                                       @RequestBody Map<String, String> payload) {
+        try {
+            String configValue = payload.get("configValue");
+            if (configValue == null) {
+                return Result.error("配置值不能为空");
+            }
+            
+            boolean success = configService.updateConfig(configKey, configValue);
+            if (success) {
+                return Result.success("配置更新成功");
+            } else {
+                return Result.error("配置更新失败，配置项可能不存在");
+            }
+        } catch (Exception e) {
+            return Result.error("更新配置失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 批量更新配置
+     * @param configMap 配置Map (key -> value)
+     * @return 更新结果
+     */
+    @PostMapping("/config/batch-update")
+    public Result<String> batchUpdateConfigs(@RequestBody Map<String, String> configMap) {
+        try {
+            if (configMap == null || configMap.isEmpty()) {
+                return Result.error("配置数据不能为空");
+            }
+            
+            int count = configService.batchUpdateConfigs(configMap);
+            return Result.success("成功更新 " + count + " 个配置项");
+        } catch (Exception e) {
+            return Result.error("批量更新配置失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 添加新配置
+     * @param config 配置对象
+     * @return 添加结果
+     */
+    @PostMapping("/config")
+    public Result<String> addConfig(@RequestBody Config config) {
+        try {
+            if (config.getConfigKey() == null || config.getConfigKey().isEmpty()) {
+                return Result.error("配置键不能为空");
+            }
+            
+            boolean success = configService.insertConfig(config);
+            if (success) {
+                return Result.success("配置添加成功");
+            } else {
+                return Result.error("配置添加失败");
+            }
+        } catch (Exception e) {
+            return Result.error("添加配置失败: " + e.getMessage());
+        }
+    }
+
+    // ==================== 模拟数据生成接口 ====================
+
+    /**
+     * 生成模拟数据（用于演示和测试）
+     * @param payload 包含生成数量的请求体
+     * @return 生成结果
+     */
+    @PostMapping("/mock-data/generate")
+    public Result<String> generateMockData(@RequestBody(required = false) Map<String, Integer> payload) {
+        try {
+            int count = 50; // 默认生成50条
+            if (payload != null && payload.containsKey("count")) {
+                count = payload.get("count");
+                if (count < 1 || count > 200) {
+                    return Result.error("生成数量必须在1-200之间");
+                }
+            }
+            
+            String result = mockDataService.generateMockData(count);
+            return Result.success(result);
+        } catch (Exception e) {
+            return Result.error("生成模拟数据失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 清空模拟数据（可选功能）
+     * @return 清空结果
+     */
+    @DeleteMapping("/mock-data/clear")
+    public Result<String> clearMockData() {
+        try {
+            String result = mockDataService.clearMockData();
+            return Result.success(result);
+        } catch (Exception e) {
+            return Result.error("清空数据失败: " + e.getMessage());
+        }
     }
 }

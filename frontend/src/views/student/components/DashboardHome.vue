@@ -22,11 +22,39 @@ let lineChart = null
 let pieChart = null
 let barChart = null
 
+// 配置数据
+const dashboardConfig = ref({
+  dashboard_title: '志愿活动数据可视化大屏',
+  dashboard_notice: '欢迎各位领导莅临指导，本学期志愿活动火热进行中！',
+  goal_total_hours: 5000,
+  show_academy_rank: true
+})
+
 // 模拟数据
 const metrics = {
   totalActivities: 128,
   activeVolunteers: 356,
   totalHours: 12450
+}
+
+// 加载配置信息
+const loadDashboardConfig = async () => {
+  try {
+    const response = await axios.get(`${API_BASE}/api/dashboard/configs`)
+    if (response.data.code === 200) {
+      const configs = response.data.data
+      // 更新配置
+      Object.keys(configs).forEach(key => {
+        if (key in dashboardConfig.value) {
+          dashboardConfig.value[key] = configs[key]
+        }
+      })
+      console.log('大屏配置加载成功:', dashboardConfig.value)
+    }
+  } catch (error) {
+    console.error('加载大屏配置失败:', error)
+    // 使用默认配置
+  }
 }
 
 // 初始化折线图
@@ -245,8 +273,13 @@ const handleResize = () => {
 }
 
 onMounted(async () => {
+  // 先加载配置
+  await loadDashboardConfig()
+  // 再初始化图表
   await initLineChart()
-  await initPieChart()
+  if (dashboardConfig.value.show_academy_rank) {
+    await initPieChart()
+  }
   await initBarChart()
   window.addEventListener('resize', handleResize)
 })
@@ -261,10 +294,22 @@ onUnmounted(() => {
 
 <template>
   <div class="space-y-6 animate-in fade-in duration-500">
-    <!-- 1. 标题区域 -->
+    <!-- 1. 标题区域 - 使用配置的标题 -->
     <div class="mb-8">
-      <h1 class="text-3xl font-bold text-slate-800 tracking-tight">志愿活动数据可视化大屏</h1>
-      <p class="text-slate-500 mt-2 text-sm font-medium">实时数据查看与分析</p>
+      <h1 class="text-3xl font-bold text-slate-800 tracking-tight">
+        {{ dashboardConfig.dashboard_title }}
+      </h1>
+      <!-- 滚动公告 -->
+      <div class="mt-3 bg-gradient-to-r from-red-50 to-orange-50 border border-red-100 rounded-lg px-4 py-2.5 overflow-hidden">
+        <div class="flex items-center gap-2">
+          <span class="text-red-600 font-semibold text-sm flex-shrink-0">📢 公告</span>
+          <div class="flex-1 overflow-hidden">
+            <p class="text-slate-700 text-sm font-medium animate-marquee whitespace-nowrap">
+              {{ dashboardConfig.dashboard_notice }}
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 2. 顶部指标卡片 -->
@@ -308,18 +353,28 @@ onUnmounted(() => {
         </CardContent>
       </Card>
 
-      <!-- 卡片3：累计活动时长 -->
+      <!-- 卡片3：累计活动时长 - 显示目标进度 -->
       <Card class="hover:shadow-lg transition-shadow duration-300 border-l-4 border-l-emerald-500">
         <CardContent class="p-6">
           <div class="flex items-center justify-between">
-            <div>
+            <div class="flex-1">
               <p class="text-sm font-medium text-slate-500">累计活动时长</p>
               <div class="mt-2 flex items-baseline gap-2">
                 <span class="text-3xl font-bold text-slate-800">{{ (metrics.totalHours / 1000).toFixed(1) }}k</span>
-                <span class="text-sm text-slate-400">小时</span>
+                <span class="text-sm text-slate-400">/ {{ (dashboardConfig.goal_total_hours / 1000).toFixed(1) }}k 小时</span>
               </div>
+              <!-- 进度条 -->
+              <div class="mt-3 w-full bg-slate-200 rounded-full h-2">
+                <div 
+                  class="bg-gradient-to-r from-emerald-500 to-green-500 h-2 rounded-full transition-all duration-500"
+                  :style="{ width: Math.min((metrics.totalHours / dashboardConfig.goal_total_hours) * 100, 100) + '%' }"
+                ></div>
+              </div>
+              <p class="text-xs text-slate-500 mt-1">
+                目标完成度: {{ ((metrics.totalHours / dashboardConfig.goal_total_hours) * 100).toFixed(1) }}%
+              </p>
             </div>
-            <div class="p-3 bg-emerald-50 rounded-xl">
+            <div class="p-3 bg-emerald-50 rounded-xl ml-4">
               <Clock class="w-6 h-6 text-emerald-600" />
             </div>
           </div>
@@ -329,8 +384,13 @@ onUnmounted(() => {
 
     <!-- 3. 中间趋势分析区域 -->
     <div class="grid gap-6 md:grid-cols-12 h-[400px]">
-      <!-- 左侧卡片 (60%) -->
-      <Card class="md:col-span-7 lg:col-span-8 hover:shadow-lg transition-shadow duration-300 flex flex-col">
+      <!-- 左侧卡片 - 根据配置调整宽度 -->
+      <Card 
+        :class="[
+          'hover:shadow-lg transition-shadow duration-300 flex flex-col',
+          dashboardConfig.show_academy_rank ? 'md:col-span-7 lg:col-span-8' : 'md:col-span-12'
+        ]"
+      >
         <CardContent class="p-6 flex-1 flex flex-col">
           <div class="flex items-center gap-2 mb-4">
             <TrendingUp class="w-5 h-5 text-blue-600" />
@@ -340,8 +400,11 @@ onUnmounted(() => {
         </CardContent>
       </Card>
 
-      <!-- 右侧卡片 (40%) -->
-      <Card class="md:col-span-5 lg:col-span-4 hover:shadow-lg transition-shadow duration-300 flex flex-col">
+      <!-- 右侧卡片 - 根据配置显示/隐藏 -->
+      <Card 
+        v-if="dashboardConfig.show_academy_rank"
+        class="md:col-span-5 lg:col-span-4 hover:shadow-lg transition-shadow duration-300 flex flex-col"
+      >
         <CardContent class="p-6 flex-1 flex flex-col">
           <div class="flex items-center gap-2 mb-4">
             <PieChart class="w-5 h-5 text-purple-600" />
@@ -371,3 +434,23 @@ onUnmounted(() => {
     </Card>
   </div>
 </template>
+
+<style scoped>
+/* 跑马灯动画 */
+@keyframes marquee {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 20s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+</style>

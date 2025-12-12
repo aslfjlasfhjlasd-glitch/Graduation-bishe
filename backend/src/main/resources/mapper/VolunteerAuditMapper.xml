@@ -94,4 +94,17 @@
         WHERE ID = #{registrationId}
     </update>
 
+    <!-- 插入模拟志愿审核记录 -->
+    <insert id="insertMockAudit">
+        INSERT INTO t_zyhdbmb (XS_XH, HD_BH, HD_SC, ZYZ_PJ, BM_SJ, BM_ZT, SH_SJ, SH_LY)
+        VALUES (#{studentId}, #{activityId}, #{hours}, #{description}, #{submitTime},
+                CASE #{status}
+                    WHEN 0 THEN '待审核'
+                    WHEN 1 THEN '已审核通过'
+                    WHEN 2 THEN '已拒绝'
+                    ELSE '待审核'
+                END,
+                #{auditTime}, #{rejectReason})
+    </insert>
+
 </mapper>

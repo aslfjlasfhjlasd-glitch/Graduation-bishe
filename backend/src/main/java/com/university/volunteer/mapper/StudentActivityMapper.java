@@ -210,4 +210,26 @@ public interface StudentActivityMapper {
      * 根据多个标签ID查询活动列表（新增：用于智能推荐）
      */
     List<VolunteerActivity> findActivitiesByTagIds(@Param("tagIds") List<Integer> tagIds);
+    
+    /**
+     * 获取所有学生ID（用于模拟数据生成）
+     */
+    @Select("SELECT XS_XH FROM t_xs")
+    List<Integer> getAllStudentIds();
+    
+    /**
+     * 获取所有活动ID（用于模拟数据生成）
+     */
+    @Select("SELECT HD_BH FROM t_zyhd WHERE FB_ZT = '已发布'")
+    List<Integer> getAllActivityIds();
+    
+    /**
+     * 插入模拟报名记录（用于演示数据生成）
+     */
+    @Insert("INSERT INTO t_zyhdbmb (XS_XH, HD_BH, BM_SJ, BM_ZT) " +
+            "VALUES (#{studentId}, #{activityId}, #{registrationTime}, #{status})")
+    int insertMockRegistration(@Param("studentId") Integer studentId,
+                               @Param("activityId") Integer activityId,
+                               @Param("registrationTime") String registrationTime,
+                               @Param("status") int status);
 }

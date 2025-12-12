@@ -40,4 +40,16 @@ public interface VolunteerAuditMapper {
      * @return 活动编号
      */
     Integer findActivityIdByRegistrationId(@Param("registrationId") Integer registrationId);
+    
+    /**
+     * 插入模拟志愿审核记录（用于演示数据生成）
+     */
+    int insertMockAudit(@Param("studentId") Integer studentId,
+                       @Param("activityId") Integer activityId,
+                       @Param("hours") double hours,
+                       @Param("description") String description,
+                       @Param("submitTime") String submitTime,
+                       @Param("status") int status,
+                       @Param("auditTime") String auditTime,
+                       @Param("rejectReason") String rejectReason);
 }
