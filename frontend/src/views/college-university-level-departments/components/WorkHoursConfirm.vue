@@ -20,7 +20,7 @@ const fetchRegistrations = async () => {
   errorMessage.value = ''
 
   try {
-    const response = await axios.get(`http://localhost:8080/api/head/registrations/${username}`)
+    const response = await axios.get(`http://localhost:8080/api/info/${username}`)
     if (response.data.code === 200) {
       // 只显示有考勤记录的
       registrations.value = (response.data.data || []).filter(r => r.checkInTime && r.checkOutTime)

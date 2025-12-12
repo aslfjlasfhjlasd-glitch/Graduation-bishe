@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import Button from '@/components/ui/button/button.vue'
 import { Star, MessageSquare, AlertCircle } from 'lucide-vue-next'
@@ -11,10 +11,10 @@ const errorMessage = ref('')
 
 // 获取报名记录（用于志愿者评价）
 const fetchRegistrations = async () => {
-  // 修改点：使用 headUsername 获取负责人账号
+  // 核心修复：使用 headUsername
   const username = localStorage.getItem('headUsername')
   if (!username) {
-    errorMessage.value = '未找到登录信息，请重新登录'
+    errorMessage.value = '未找到负责人登录信息，请尝试注销并重新登录'
     return
   }
 
