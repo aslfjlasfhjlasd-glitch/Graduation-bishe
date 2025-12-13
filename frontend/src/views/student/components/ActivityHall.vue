@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Calendar, MapPin, Users, Leaf, BookOpen, HeartPulse, Sparkles, Info, ShieldCheck, Building2, Clock, CalendarCheck, CalendarX, Activity, Flag, AlertCircle, CheckCircle2, Search, X, Filter, SlidersHorizontal, Star, TrendingUp } from 'lucide-vue-next'
 import { DialogRoot, DialogOverlay, DialogContent, DialogTitle, DialogDescription } from 'radix-vue'
 import { ToastProvider, ToastViewport, ToastRoot, ToastTitle, ToastDescription, ToastClose } from 'radix-vue'
-import { getRecommendedActivities } from '@/api/recommend.js'
+import { getRecommendedActivities, reportActivityView } from '@/api/recommend.js'
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
 // 搜索和筛选相关状态
@@ -122,7 +122,19 @@ const loadRecommendations = async () => {
   }
 }
 
+/**
+ * 打开活动详情
+ * 关键改动：在打开详情的第一时间，静默上报浏览次数
+ * 使用 Fire-and-Forget 模式，不等待响应，避免影响用户体验
+ */
 const openDetail = async (id) => {
+  // 🔥 埋点：上报浏览次数（不等待响应）
+  reportActivityView(id).catch(err => {
+    // 静默处理错误，不影响用户查看详情
+    console.warn('浏览计数失败:', err)
+  })
+  
+  // 继续原有的详情加载逻辑
   selectedId.value = id
   detailOpen.value = true
   detailLoading.value = true

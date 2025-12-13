@@ -243,4 +243,11 @@ public interface StudentActivityMapper {
                                @Param("activityId") Integer activityId,
                                @Param("registrationTime") String registrationTime,
                                @Param("status") int status);
+    
+    /**
+     * 原子性增加活动浏览次数
+     * 使用数据库行锁保证并发安全，避免 select + update 导致的数据丢失
+     */
+    @Update("UPDATE t_zyhd SET LL_CS = LL_CS + 1 WHERE HD_BH = #{activityId}")
+    int incrementViewCount(@Param("activityId") Integer activityId);
 }

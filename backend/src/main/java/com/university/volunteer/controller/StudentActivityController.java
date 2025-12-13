@@ -83,6 +83,22 @@ public class StudentActivityController {
     }
 
     /**
+     * 增加活动浏览次数
+     * 前端在点击"查看详情"按钮时调用此接口
+     * 使用 POST 方法，路径为 /api/student/activity/{id}/view
+     * 
+     * 注意：此接口设计为"只写不读"，不返回具体数据，只返回操作状态
+     * 前端应该以"Fire and Forget"方式调用，不等待响应，避免影响用户体验
+     * 
+     * @param activityId 活动ID
+     * @return 操作结果
+     */
+    @PostMapping("/activity/{activityId}/view")
+    public Result<String> addViewCount(@PathVariable Integer activityId) {
+        return studentActivityService.addViewCount(activityId);
+    }
+
+    /**
      * 报名参加活动
      *
      * @param requestBody 包含 studentId 和 activityId
@@ -117,8 +133,9 @@ public class StudentActivityController {
     }
 
     /**
-     * 智能推荐活动
+     * 智能推荐活动（升级版）
      * 基于学生标签的内容推荐算法 + 热门兜底策略
+     * 新增：引入浏览次数作为推荐权重因子
      *
      * @param studentId 学生学号
      * @return 推荐活动列表（最多10个）

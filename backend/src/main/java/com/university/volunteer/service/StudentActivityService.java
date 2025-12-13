@@ -59,6 +59,35 @@ public class StudentActivityService {
     }
 
     /**
+     * 增加活动浏览次数
+     * 使用原子性更新，保证高并发下的数据准确性
+     * 
+     * @param activityId 活动ID
+     * @return 操作结果
+     */
+    public Result<String> addViewCount(Integer activityId) {
+        try {
+            // 验证活动是否存在（可选，为了性能可以省略）
+            // VolunteerActivity activity = studentActivityMapper.findActivityById(activityId);
+            // if (activity == null) {
+            //     return Result.error("活动不存在");
+            // }
+            
+            // 直接执行原子性更新
+            int rows = studentActivityMapper.incrementViewCount(activityId);
+            if (rows > 0) {
+                return Result.success("浏览计数成功");
+            } else {
+                return Result.error("活动不存在");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            // 浏览计数失败不应该影响用户体验，静默处理
+            return Result.error("浏览计数失败");
+        }
+    }
+
+    /**
      * 学生对活动评分（1-5）
      */
     @Transactional(rollbackFor = Exception.class)
@@ -150,7 +179,7 @@ public class StudentActivityService {
         String status;
         if (activity.getBmKssj() == null || activity.getBmJssj() == null ||
             activity.getHdKssj() == null || activity.getHdJssj() == null) {
-            // 时间字段不完整时不允许报名（避免“时间未配置”导致异常开放）
+            // 时间字段不完整时不允许报名（避免"时间未配置"导致异常开放）
             return Result.error("活动时间配置不完整，暂不可报名");
         }
 
@@ -267,8 +296,14 @@ public class StudentActivityService {
     }
 
     /**
-     * 智能推荐活动
+     * 智能推荐活动（升级版）
      * 基于学生标签的内容推荐算法 + 热门兜底策略
+     * 新增：引入浏览次数作为推荐权重因子
+     *
+     * 加权公式：Score = (TagMatch × 10) + (SignupCount × 2) + (ViewCount × 0.3)
+     * - TagMatch: 标签匹配数（权重最高，保证相关性）
+     * - SignupCount: 报名人数（代表硬核热度）
+     * - ViewCount: 浏览次数（权重最低，避免标题党霸榜）
      *
      * @param studentId 学生学号
      * @return 推荐活动列表
@@ -278,14 +313,14 @@ public class StudentActivityService {
             // 1. 获取学生的标签画像
             List<Tag> studentTags = studentTagMapper.findTagsByStudentId(studentId);
             
-            // 2. 获取所有招募中的活动
+            // 2. 获取所有招募中的活动（现在包含 LL_CS 字段）
             List<VolunteerActivity> candidateActivities = studentActivityMapper.findRecruitingActivities();
             
             if (candidateActivities == null || candidateActivities.isEmpty()) {
                 return Result.success(new ArrayList<>());
             }
             
-            // 3. 计算匹配分数
+            // 3. 计算综合匹配分数
             List<ActivityRecommendDTO> recommendList = new ArrayList<>();
             
             if (studentTags != null && !studentTags.isEmpty()) {
@@ -308,20 +343,27 @@ public class StudentActivityService {
                     
                     // 计算标签交集
                     List<String> matchedTags = new ArrayList<>();
-                    int matchScore = 0;
+                    int tagMatchCount = 0;
                     
                     for (Tag activityTag : activityTags) {
                         if (studentTagIds.contains(activityTag.getBqId())) {
                             matchedTags.add(activityTag.getBqMc());
-                            matchScore += 10; // 每个匹配标签得10分
+                            tagMatchCount++;
                         }
                     }
                     
                     // 只推荐有匹配标签的活动
-                    if (matchScore > 0) {
+                    if (tagMatchCount > 0) {
+                        // 计算综合评分
+                        int signupCount = activity.getYbmRs() != null ? activity.getYbmRs() : 0;
+                        int viewCount = activity.getLlCs() != null ? activity.getLlCs() : 0;
+                        
+                        // 加权公式：标签匹配 × 10 + 报名人数 × 2 + 浏览次数 × 0.3
+                        double comprehensiveScore = (tagMatchCount * 10.0) + (signupCount * 2.0) + (viewCount * 0.3);
+                        
                         ActivityRecommendDTO dto = new ActivityRecommendDTO();
                         dto.setActivity(activity);
-                        dto.setMatchScore(matchScore);
+                        dto.setMatchScore((int) comprehensiveScore); // 综合评分
                         dto.setMatchedTags(matchedTags);
                         dto.setActivityTags(activityTags);
                         dto.setRecommendType("CONTENT_BASED");
@@ -329,7 +371,7 @@ public class StudentActivityService {
                     }
                 }
                 
-                // 按匹配分数降序排序
+                // 按综合评分降序排序
                 recommendList.sort((a, b) -> b.getMatchScore().compareTo(a.getMatchScore()));
             }
             
@@ -350,9 +392,14 @@ public class StudentActivityService {
                     if (!existingActivityIds.contains(hotActivity.getHdBh())) {
                         List<Tag> activityTags = activityTagMapper.findTagsByActivityId(hotActivity.getHdBh());
                         
+                        // 热门活动也使用综合评分（但标签匹配为0）
+                        int signupCount = hotActivity.getYbmRs() != null ? hotActivity.getYbmRs() : 0;
+                        int viewCount = hotActivity.getLlCs() != null ? hotActivity.getLlCs() : 0;
+                        double comprehensiveScore = (signupCount * 2.0) + (viewCount * 0.3);
+                        
                         ActivityRecommendDTO dto = new ActivityRecommendDTO();
                         dto.setActivity(hotActivity);
-                        dto.setMatchScore(0);
+                        dto.setMatchScore((int) comprehensiveScore);
                         dto.setMatchedTags(new ArrayList<>());
                         dto.setActivityTags(activityTags);
                         dto.setRecommendType("HOT");
