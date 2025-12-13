@@ -335,12 +335,14 @@ public class StudentActivityService {
                 
                 for (VolunteerActivity activity : candidateActivities) {
                     // 获取活动的标签
-                    List<Tag> activityTags = activityTagMapper.findTagsByActivityId(activity.getHdBh());
+                    List<Tag> activityTags = activity.getTags();
                     
-                    if (activityTags == null || activityTags.isEmpty()) {
-                        continue;
+                    if (activityTags == null) {
+                    activityTags = activityTagMapper.findTagsByActivityId(activity.getHdBh());
                     }
-                    
+                    if (activityTags == null || activityTags.isEmpty()) {
+                    continue;
+                    }
                     // 计算标签交集
                     List<String> matchedTags = new ArrayList<>();
                     int tagMatchCount = 0;

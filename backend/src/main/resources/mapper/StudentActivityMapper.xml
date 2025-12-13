@@ -115,11 +115,10 @@
                BM_KSSJ, BM_JSSJ, HD_KSSJ, HD_JSSJ,
                HD_NR, HD_DD, ZM_RS, YBM_RS, HDXQ,
                HD_BZ, HD_FQ_DW, HD_ZT, FB_ZT,
-               HD_BQ, JN_YQ, ZY_XZ, BBH
+               HD_BQ, JN_YQ, ZY_XZ, BBH, LL_CS
         FROM t_zyhd
         WHERE FB_ZT = '已发布'
-          AND NOW() BETWEEN BM_KSSJ AND BM_JSSJ
-        ORDER BY HD_BH DESC
+          AND BM_JSSJ > NOW()  ORDER BY HD_BH DESC
     </select>
 
     <!-- 获取热门活动（按报名人数倒序） -->
@@ -130,11 +129,10 @@
                BM_KSSJ, BM_JSSJ, HD_KSSJ, HD_JSSJ,
                HD_NR, HD_DD, ZM_RS, YBM_RS, HDXQ,
                HD_BZ, HD_FQ_DW, HD_ZT, FB_ZT,
-               HD_BQ, JN_YQ, ZY_XZ, BBH
+               HD_BQ, JN_YQ, ZY_XZ, BBH, LL_CS
         FROM t_zyhd
         WHERE FB_ZT = '已发布'
-          AND NOW() BETWEEN BM_KSSJ AND BM_JSSJ
-        ORDER BY YBM_RS DESC, HD_BH DESC
+          AND BM_JSSJ > NOW()  ORDER BY YBM_RS DESC, HD_BH DESC
         LIMIT #{limit}
     </select>
 
