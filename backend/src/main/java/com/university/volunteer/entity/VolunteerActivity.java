@@ -1,55 +1,253 @@
 package com.university.volunteer.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
-import lombok.Data;
+import java.util.List;
 
-import java.time.LocalDateTime;
-
-@Data
-@TableName("t_zyhd")
+/**
+ * 志愿活动实体类
+ * 对应数据库表: t_zyhd
+ */
 public class VolunteerActivity {
-    @TableId(value = "HD_BH", type = IdType.AUTO)
-    private Long hdBh;
-
-    @TableField("HD_MC")
+    // 活动编号
+    private Integer hdBh;
+    // 活动名称
     private String hdMc;
+    // 报名时间 (范围字符串)
+    private String bmSj;
+    // 活动时间
+    private String hdSj;
+    
+    // 报名开始时间
+    private java.util.Date bmKssj;
+    // 报名结束时间
+    private java.util.Date bmJssj;
+    // 活动开始时间
+    private java.util.Date hdKssj;
+    // 活动结束时间
+    private java.util.Date hdJssj;
 
-    @TableField("HD_NR")
+    // 活动内容
     private String hdNr;
-
-    @TableField("HD_DD")
+    // 活动地点
     private String hdDd;
-
-    @TableField("KS_SJ")
-    private LocalDateTime ksSj;
-
-    @TableField("JS_SJ")
-    private LocalDateTime jsSj;
-
-    @TableField("XY_RS")
-    private Integer xyRs;
-
-    @TableField("YBM_RS")
+    // 招募人数 (整数)
+    private Integer zmRs;
+    // 已报名人数
     private Integer ybmRs;
+    // 活动需求
+    private String hdXq;
+    // 活动保障
+    private String hdBz;
+    // 发起单位
+    private String hdFqDw;
+    // 活动状态
+    private String hdZt;
+    // 发布状态
+    private String fbZt;
+    // 活动标签（字符串，用于兼容和冗余存储）
+    private String hdBq;
+    // 技能要求（字符串，用于兼容和冗余存储）
+    private String jnYq;
+    // 专业限制
+    private String zyXz;
+    // 乐观锁版本号
+    private Integer bbh;
+    
+    // 新增：标签列表（用于结构化数据）
+    private List<Tag> tags;
+    // 新增：标签ID列表（用于前后端交互）
+    private List<Integer> tagIds;
+    // 浏览次数
+    private Integer llCs;
 
-    @TableField("ZT")
-    private String zt;
+    public Integer getHdBh() {
+        return hdBh;
+    }
 
-    @TableField("CJR")
-    private String cjr;
+    public void setHdBh(Integer hdBh) {
+        this.hdBh = hdBh;
+    }
 
-    @TableField("CJ_SJ")
-    private LocalDateTime cjSj;
+    public String getHdMc() {
+        return hdMc;
+    }
 
-    @TableField("GXR")
-    private String gxr;
+    public void setHdMc(String hdMc) {
+        this.hdMc = hdMc;
+    }
 
-    @TableField("GX_SJ")
-    private LocalDateTime gxSj;
+    public String getBmSj() {
+        return bmSj;
+    }
 
-    @TableField("LL_CS")
-    private Integer llCs;  // 浏览次数
+    public void setBmSj(String bmSj) {
+        this.bmSj = bmSj;
+    }
+
+    public String getHdSj() {
+        return hdSj;
+    }
+
+    public void setHdSj(String hdSj) {
+        this.hdSj = hdSj;
+    }
+
+    public java.util.Date getBmKssj() {
+        return bmKssj;
+    }
+
+    public void setBmKssj(java.util.Date bmKssj) {
+        this.bmKssj = bmKssj;
+    }
+
+    public java.util.Date getBmJssj() {
+        return bmJssj;
+    }
+
+    public void setBmJssj(java.util.Date bmJssj) {
+        this.bmJssj = bmJssj;
+    }
+
+    public java.util.Date getHdKssj() {
+        return hdKssj;
+    }
+
+    public void setHdKssj(java.util.Date hdKssj) {
+        this.hdKssj = hdKssj;
+    }
+
+    public java.util.Date getHdJssj() {
+        return hdJssj;
+    }
+
+    public void setHdJssj(java.util.Date hdJssj) {
+        this.hdJssj = hdJssj;
+    }
+
+    public String getHdNr() {
+        return hdNr;
+    }
+
+    public void setHdNr(String hdNr) {
+        this.hdNr = hdNr;
+    }
+
+    public String getHdDd() {
+        return hdDd;
+    }
+
+    public void setHdDd(String hdDd) {
+        this.hdDd = hdDd;
+    }
+
+    public Integer getZmRs() {
+        return zmRs;
+    }
+
+    public void setZmRs(Integer zmRs) {
+        this.zmRs = zmRs;
+    }
+
+    public Integer getYbmRs() {
+        return ybmRs;
+    }
+
+    public void setYbmRs(Integer ybmRs) {
+        this.ybmRs = ybmRs;
+    }
+
+    public String getHdXq() {
+        return hdXq;
+    }
+
+    public void setHdXq(String hdXq) {
+        this.hdXq = hdXq;
+    }
+
+    public String getHdBz() {
+        return hdBz;
+    }
+
+    public void setHdBz(String hdBz) {
+        this.hdBz = hdBz;
+    }
+
+    public String getHdFqDw() {
+        return hdFqDw;
+    }
+
+    public void setHdFqDw(String hdFqDw) {
+        this.hdFqDw = hdFqDw;
+    }
+
+    public String getHdZt() {
+        return hdZt;
+    }
+
+    public void setHdZt(String hdZt) {
+        this.hdZt = hdZt;
+    }
+
+    public String getFbZt() {
+        return fbZt;
+    }
+
+    public void setFbZt(String fbZt) {
+        this.fbZt = fbZt;
+    }
+
+    public String getHdBq() {
+        return hdBq;
+    }
+
+    public void setHdBq(String hdBq) {
+        this.hdBq = hdBq;
+    }
+
+    public String getJnYq() {
+        return jnYq;
+    }
+
+    public void setJnYq(String jnYq) {
+        this.jnYq = jnYq;
+    }
+
+    public String getZyXz() {
+        return zyXz;
+    }
+
+    public void setZyXz(String zyXz) {
+        this.zyXz = zyXz;
+    }
+
+    public Integer getBbh() {
+        return bbh;
+    }
+
+    public void setBbh(Integer bbh) {
+        this.bbh = bbh;
+    }
+
+    public List<Tag> getTags() {
+        return tags;
+    }
+
+    public void setTags(List<Tag> tags) {
+        this.tags = tags;
+    }
+
+    public List<Integer> getTagIds() {
+        return tagIds;
+    }
+
+    public void setTagIds(List<Integer> tagIds) {
+        this.tagIds = tagIds;
+    }
+
+    public Integer getLlCs() {
+        return llCs;
+    }
+
+    public void setLlCs(Integer llCs) {
+        this.llCs = llCs;
+    }
 }
