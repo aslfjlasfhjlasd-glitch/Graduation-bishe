@@ -2,6 +2,7 @@ package com.university.volunteer.controller;
 
 import com.university.volunteer.common.Result;
 import com.university.volunteer.dto.ActivityPerformanceDTO;
+import com.university.volunteer.dto.ActivityRecommendDTO;
 import com.university.volunteer.entity.ActivityRegistration;
 import com.university.volunteer.entity.VolunteerActivity;
 import com.university.volunteer.service.StudentActivityService;
@@ -113,5 +114,17 @@ public class StudentActivityController {
         }
 
         return studentActivityService.cancelRegistration(studentId, activityId);
+    }
+
+    /**
+     * 智能推荐活动
+     * 基于学生标签的内容推荐算法 + 热门兜底策略
+     *
+     * @param studentId 学生学号
+     * @return 推荐活动列表（最多10个）
+     */
+    @GetMapping("/activity/recommend")
+    public Result<List<ActivityRecommendDTO>> getRecommendedActivities(@RequestParam Integer studentId) {
+        return studentActivityService.getRecommendedActivities(studentId);
     }
 }

@@ -729,11 +729,7 @@ defineExpose({
 
     <!-- 3. 中间趋势分析区域 -->
     <div class="grid gap-6 md:grid-cols-12">
-<<<<<<< HEAD
-      <!-- 左侧卡片 - 各学院参与度占比 -->
-=======
       <!-- 左侧卡片 - 根据配置显示/隐藏 -->
->>>>>>> origin/main
       <Card
         v-if="dashboardConfig.show_academy_rank"
         class="md:col-span-5 lg:col-span-4 hover:shadow-lg transition-shadow duration-300 flex flex-col"
@@ -749,11 +745,7 @@ defineExpose({
         </CardContent>
       </Card>
 
-<<<<<<< HEAD
-      <!-- 右侧卡片 - 近半年活动趋势 -->
-=======
       <!-- 右侧卡片 - 根据配置调整宽度 -->
->>>>>>> origin/main
       <Card
         :class="dashboardConfig.show_academy_rank ? 'hover:shadow-lg transition-shadow duration-300 flex flex-col md:col-span-7 lg:col-span-8' : 'hover:shadow-lg transition-shadow duration-300 flex flex-col md:col-span-12'"
       >

@@ -3,9 +3,11 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import axios from 'axios'
 import Button from '@/components/ui/button/button.vue'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Calendar, MapPin, Users, Leaf, BookOpen, HeartPulse, Sparkles, Info, ShieldCheck, Building2, Clock, CalendarCheck, CalendarX, Activity, Flag, AlertCircle, CheckCircle2, Search, X, Filter, SlidersHorizontal } from 'lucide-vue-next'
+import { Badge } from '@/components/ui/badge'
+import { Calendar, MapPin, Users, Leaf, BookOpen, HeartPulse, Sparkles, Info, ShieldCheck, Building2, Clock, CalendarCheck, CalendarX, Activity, Flag, AlertCircle, CheckCircle2, Search, X, Filter, SlidersHorizontal, Star, TrendingUp } from 'lucide-vue-next'
 import { DialogRoot, DialogOverlay, DialogContent, DialogTitle, DialogDescription } from 'radix-vue'
 import { ToastProvider, ToastViewport, ToastRoot, ToastTitle, ToastDescription, ToastClose } from 'radix-vue'
+import { getRecommendedActivities } from '@/api/recommend.js'
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
 // 搜索和筛选相关状态
@@ -32,6 +34,11 @@ const detail = ref(null)
 const toastOpen = ref(false)
 const toastTitle = ref('')
 const toastDesc = ref('')
+
+// 推荐相关状态
+const recommendedActivities = ref([])
+const recommendLoading = ref(false)
+const showRecommendations = ref(true)
 
 const loadActivities = async () => {
   listLoading.value = true
@@ -62,6 +69,56 @@ const loadActivities = async () => {
     activities.value = []
   } finally {
     listLoading.value = false
+  }
+}
+
+// 加载推荐活动
+const loadRecommendations = async () => {
+  recommendLoading.value = true
+  try {
+    const studentId = localStorage.getItem('studentId')
+    if (!studentId) {
+      console.warn('未找到学生ID，跳过推荐加载')
+      return
+    }
+    
+    const res = await getRecommendedActivities(parseInt(studentId))
+    if (res.data && res.data.code === 200) {
+      const recommendations = res.data.data || []
+      // 转换推荐数据格式以匹配活动卡片
+      recommendedActivities.value = recommendations.map(item => ({
+        id: item.activity.hdBh,
+        hdmc: item.activity.hdMc,
+        bmsj: item.activity.bmSj || '',
+        hdsj: item.activity.hdSj || '',
+        hddd: item.activity.hdDd || '',
+        zyrs: item.activity.zmRs || '不限',
+        ybmrs: item.activity.ybmRs || 0,
+        bmkssj: item.activity.bmKssj,
+        bmjssj: item.activity.bmJssj,
+        hdkssj: item.activity.hdKssj,
+        hdjssj: item.activity.hdJssj,
+        icon: pickIcon(item.activity.hdMc),
+        // 推荐相关信息
+        matchScore: item.matchScore || 0,
+        matchedTags: item.matchedTags || [],
+        activityTags: item.activityTags || [],
+        recommendType: item.recommendType || 'HOT'
+      }))
+      
+      // 计算推荐活动的状态
+      recommendedActivities.value = recommendedActivities.value.map(a => ({
+        ...a,
+        status: computeStatus(a)
+      }))
+      
+      console.log('✨ 推荐活动加载成功:', recommendedActivities.value.length, '个')
+    }
+  } catch (e) {
+    console.error('❌ 加载推荐失败:', e)
+    recommendedActivities.value = []
+  } finally {
+    recommendLoading.value = false
   }
 }
 
@@ -318,6 +375,7 @@ const toggleFilters = () => {
 let statusTimer = null
 onMounted(async () => {
   await loadActivities()
+  await loadRecommendations() // 加载推荐活动
   statusTimer = setInterval(updateStatuses, 60000)
 })
 onUnmounted(() => {
@@ -338,6 +396,152 @@ onUnmounted(() => {
         <ToastClose class="absolute right-2 top-2 text-slate-400">×</ToastClose>
       </ToastRoot>
     </ToastProvider>
+
+    <!-- 🌟 智能推荐区域 -->
+    <div v-if="showRecommendations && recommendedActivities.length > 0" class="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
+      <div class="flex items-center justify-between mb-5">
+        <div class="flex items-center gap-3">
+          <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 via-orange-400 to-rose-400 shadow-lg">
+            <Star class="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h2 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
+              猜你喜欢
+              <span class="text-sm font-normal text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">智能推荐</span>
+            </h2>
+            <p class="text-sm text-slate-600 mt-0.5">基于您的兴趣标签为您精选活动</p>
+          </div>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          @click="showRecommendations = false"
+          class="text-slate-500 hover:text-slate-700"
+        >
+          <X class="w-4 h-4" />
+        </Button>
+      </div>
+
+      <!-- 推荐活动卡片 -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <Card
+          v-for="item in recommendedActivities.slice(0, 6)"
+          :key="item.id"
+          class="group relative bg-gradient-to-br from-white to-slate-50/50 border-2 hover:shadow-2xl rounded-2xl transition-all duration-300 hover:scale-[1.03] overflow-hidden"
+          :class="item.recommendType === 'CONTENT_BASED' ? 'border-amber-200 hover:border-amber-400' : 'border-blue-200 hover:border-blue-400'"
+        >
+          <!-- 推荐标签角标 -->
+          <div class="absolute top-0 right-0 z-10">
+            <div
+              v-if="item.recommendType === 'CONTENT_BASED'"
+              class="bg-gradient-to-br from-amber-500 to-orange-500 text-white text-xs font-bold px-3 py-1.5 rounded-bl-xl rounded-tr-xl shadow-lg flex items-center gap-1"
+            >
+              <Star class="w-3 h-3 fill-current" />
+              匹配度 {{ item.matchScore }}分
+            </div>
+            <div
+              v-else
+              class="bg-gradient-to-br from-blue-500 to-cyan-500 text-white text-xs font-bold px-3 py-1.5 rounded-bl-xl rounded-tr-xl shadow-lg flex items-center gap-1"
+            >
+              <TrendingUp class="w-3 h-3" />
+              热门推荐
+            </div>
+          </div>
+
+          <CardHeader class="pb-3 px-5 pt-5">
+            <div class="flex items-center gap-3">
+              <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-tr from-blue-600 via-cyan-500 to-emerald-500 text-white shadow-lg">
+                <component :is="icons[item.icon]" class="w-5 h-5" />
+              </span>
+              <CardTitle class="text-slate-900 text-base font-bold line-clamp-2">{{ item.hdmc }}</CardTitle>
+            </div>
+          </CardHeader>
+
+          <CardContent class="space-y-3 px-5 pb-20">
+            <!-- 匹配标签高亮显示 -->
+            <div v-if="item.matchedTags && item.matchedTags.length > 0" class="flex flex-wrap gap-1.5">
+              <span
+                v-for="tag in item.matchedTags.slice(0, 4)"
+                :key="tag"
+                class="inline-flex items-center gap-1 text-xs font-semibold bg-gradient-to-r from-red-100 to-rose-100 text-red-700 px-2.5 py-1 rounded-full border border-red-200 shadow-sm"
+              >
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                {{ tag }}
+              </span>
+              <span
+                v-if="item.matchedTags.length > 4"
+                class="inline-flex items-center text-xs text-slate-500 px-2 py-1"
+              >
+                +{{ item.matchedTags.length - 4 }}
+              </span>
+            </div>
+
+            <!-- 活动信息 -->
+            <div class="text-sm text-slate-700 space-y-2">
+              <div class="flex items-center gap-2">
+                <Calendar class="w-4 h-4 text-blue-600 flex-shrink-0" />
+                <span class="line-clamp-1">{{ item.hdsj }}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <MapPin class="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span class="line-clamp-1">{{ item.hddd }}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <Users class="w-4 h-4 text-cyan-600 flex-shrink-0" />
+                <span>
+                  <span class="font-semibold text-cyan-700">{{ item.ybmrs }}</span>
+                  <span class="text-slate-500 mx-1">/</span>
+                  <span>{{ item.zyrs }}</span>
+                </span>
+              </div>
+            </div>
+          </CardContent>
+
+          <!-- 操作按钮 -->
+          <div class="absolute bottom-4 left-4 flex items-center gap-2">
+            <Button
+              variant="default"
+              size="sm"
+              class="gap-1.5 shadow-md"
+              @click="openDetail(item.id)"
+            >
+              <Info class="w-3.5 h-3.5" />
+              查看详情
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              class="shadow-md"
+              @click="registerActivity(item)"
+            >
+              立即报名
+            </Button>
+          </div>
+
+          <!-- 状态标签 -->
+          <div class="absolute bottom-4 right-4">
+            <span
+              class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium shadow-sm"
+              :class="statusClassMap[item.status]"
+            >
+              <component :is="statusIconMap[item.status]" class="w-3.5 h-3.5" />
+              {{ item.status }}
+            </span>
+          </div>
+        </Card>
+      </div>
+
+      <!-- 查看更多推荐 -->
+      <div v-if="recommendedActivities.length > 6" class="mt-4 text-center">
+        <Button variant="outline" class="gap-2">
+          <Sparkles class="w-4 h-4" />
+          查看更多推荐 ({{ recommendedActivities.length - 6 }}+)
+        </Button>
+      </div>
+
+      <!-- 分隔线 -->
+      <div class="mt-8 mb-6 border-t border-slate-200"></div>
+    </div>
 
     <!-- 搜索和筛选区域 -->
     <div class="mb-6 space-y-4">

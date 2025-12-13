@@ -212,6 +212,17 @@ public interface StudentActivityMapper {
     List<VolunteerActivity> findActivitiesByTagIds(@Param("tagIds") List<Integer> tagIds);
     
     /**
+     * 获取所有招募中的活动（用于推荐系统）
+     * 状态为"已发布"且在报名时间内的活动
+     */
+    List<VolunteerActivity> findRecruitingActivities();
+    
+    /**
+     * 获取热门活动（按报名人数倒序）
+     */
+    List<VolunteerActivity> findHotActivities(@Param("limit") Integer limit);
+    
+    /**
      * 获取所有学生ID（用于模拟数据生成）
      */
     @Select("SELECT XS_XH FROM t_xs")

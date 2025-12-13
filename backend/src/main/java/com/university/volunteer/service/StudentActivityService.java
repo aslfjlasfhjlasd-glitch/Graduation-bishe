@@ -2,11 +2,15 @@ package com.university.volunteer.service;
 
 import com.university.volunteer.common.Result;
 import com.university.volunteer.dto.ActivityPerformanceDTO;
+import com.university.volunteer.dto.ActivityRecommendDTO;
 import com.university.volunteer.entity.ActivityRegistration;
 import com.university.volunteer.entity.Student;
+import com.university.volunteer.entity.Tag;
 import com.university.volunteer.entity.VolunteerActivity;
+import com.university.volunteer.mapper.ActivityTagMapper;
 import com.university.volunteer.mapper.StudentActivityMapper;
 import com.university.volunteer.mapper.StudentMapper;
+import com.university.volunteer.mapper.StudentTagMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -14,8 +18,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Date;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class StudentActivityService {
@@ -25,6 +29,12 @@ public class StudentActivityService {
 
     @Autowired
     private StudentMapper studentMapper;
+    
+    @Autowired
+    private StudentTagMapper studentTagMapper;
+    
+    @Autowired
+    private ActivityTagMapper activityTagMapper;
 
     public Result<List<ActivityRegistration>> getRegistrationStatus(String studentId) {
         List<ActivityRegistration> list = studentActivityMapper.selectRegistrationsByStudentId(studentId);
@@ -254,6 +264,115 @@ public class StudentActivityService {
         // 注意：触发器只在原状态为"已审核通过"时才会减少人数
 
         return Result.success("取消报名成功");
+    }
+
+    /**
+     * 智能推荐活动
+     * 基于学生标签的内容推荐算法 + 热门兜底策略
+     *
+     * @param studentId 学生学号
+     * @return 推荐活动列表
+     */
+    public Result<List<ActivityRecommendDTO>> getRecommendedActivities(Integer studentId) {
+        try {
+            // 1. 获取学生的标签画像
+            List<Tag> studentTags = studentTagMapper.findTagsByStudentId(studentId);
+            
+            // 2. 获取所有招募中的活动
+            List<VolunteerActivity> candidateActivities = studentActivityMapper.findRecruitingActivities();
+            
+            if (candidateActivities == null || candidateActivities.isEmpty()) {
+                return Result.success(new ArrayList<>());
+            }
+            
+            // 3. 计算匹配分数
+            List<ActivityRecommendDTO> recommendList = new ArrayList<>();
+            
+            if (studentTags != null && !studentTags.isEmpty()) {
+                // 学生有标签，进行基于内容的推荐
+                Set<String> studentTagNames = studentTags.stream()
+                        .map(Tag::getBqMc)
+                        .collect(Collectors.toSet());
+                
+                Set<Integer> studentTagIds = studentTags.stream()
+                        .map(Tag::getBqId)
+                        .collect(Collectors.toSet());
+                
+                for (VolunteerActivity activity : candidateActivities) {
+                    // 获取活动的标签
+                    List<Tag> activityTags = activityTagMapper.findTagsByActivityId(activity.getHdBh());
+                    
+                    if (activityTags == null || activityTags.isEmpty()) {
+                        continue;
+                    }
+                    
+                    // 计算标签交集
+                    List<String> matchedTags = new ArrayList<>();
+                    int matchScore = 0;
+                    
+                    for (Tag activityTag : activityTags) {
+                        if (studentTagIds.contains(activityTag.getBqId())) {
+                            matchedTags.add(activityTag.getBqMc());
+                            matchScore += 10; // 每个匹配标签得10分
+                        }
+                    }
+                    
+                    // 只推荐有匹配标签的活动
+                    if (matchScore > 0) {
+                        ActivityRecommendDTO dto = new ActivityRecommendDTO();
+                        dto.setActivity(activity);
+                        dto.setMatchScore(matchScore);
+                        dto.setMatchedTags(matchedTags);
+                        dto.setActivityTags(activityTags);
+                        dto.setRecommendType("CONTENT_BASED");
+                        recommendList.add(dto);
+                    }
+                }
+                
+                // 按匹配分数降序排序
+                recommendList.sort((a, b) -> b.getMatchScore().compareTo(a.getMatchScore()));
+            }
+            
+            // 4. 兜底策略：如果推荐结果少于5个，补充热门活动
+            if (recommendList.size() < 5) {
+                List<VolunteerActivity> hotActivities = studentActivityMapper.findHotActivities(10);
+                
+                // 去重：排除已经在推荐列表中的活动
+                Set<Integer> existingActivityIds = recommendList.stream()
+                        .map(dto -> dto.getActivity().getHdBh())
+                        .collect(Collectors.toSet());
+                
+                for (VolunteerActivity hotActivity : hotActivities) {
+                    if (recommendList.size() >= 10) {
+                        break; // 最多推荐10个
+                    }
+                    
+                    if (!existingActivityIds.contains(hotActivity.getHdBh())) {
+                        List<Tag> activityTags = activityTagMapper.findTagsByActivityId(hotActivity.getHdBh());
+                        
+                        ActivityRecommendDTO dto = new ActivityRecommendDTO();
+                        dto.setActivity(hotActivity);
+                        dto.setMatchScore(0);
+                        dto.setMatchedTags(new ArrayList<>());
+                        dto.setActivityTags(activityTags);
+                        dto.setRecommendType("HOT");
+                        recommendList.add(dto);
+                        existingActivityIds.add(hotActivity.getHdBh());
+                    }
+                }
+            }
+            
+            // 5. 截取前10个
+            if (recommendList.size() > 10) {
+                recommendList = recommendList.subList(0, 10);
+            }
+            
+            return Result.success(recommendList);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取推荐活动失败：" + e.getMessage());
+        }
     }
 
     private ResponseEntity<byte[]> buildPdf(String content, String filename) {

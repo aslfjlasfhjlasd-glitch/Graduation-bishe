@@ -6,6 +6,7 @@ com\university\volunteer\entity\Admin.class
 com\university\volunteer\controller\AdminController.class
 com\university\volunteer\service\TagService.class
 com\university\volunteer\service\AuthService.class
+com\university\volunteer\dto\ActivityRecommendDTO.class
 com\university\volunteer\entity\StudentTag.class
 com\university\volunteer\entity\DepartmentHead.class
 com\university\volunteer\dto\ActivityPerformanceDTO.class

@@ -168,10 +168,10 @@ onMounted(() => {
           </thead>
           <tbody class="[&_tr:last-child]:border-0">
             <tr v-if="loading">
-              <td colspan="5" class="p-4 text-center text-slate-500">加载中...</td>
+              <td colspan="6" class="p-4 text-center text-slate-500">加载中...</td>
             </tr>
             <tr v-else-if="registrations.length === 0">
-              <td colspan="5" class="p-4 text-center text-slate-500">暂无报名记录</td>
+              <td colspan="6" class="p-4 text-center text-slate-500">暂无报名记录</td>
             </tr>
             <tr v-else v-for="item in registrations" :key="item.activityId" class="border-b transition-colors hover:bg-slate-100/50">
             <td class="p-4 align-middle font-medium">{{ item.activityId }}</td>
