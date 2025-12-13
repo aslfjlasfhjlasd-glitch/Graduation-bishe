@@ -13,6 +13,25 @@ const saving = ref(false)
 const generating = ref(false)
 const message = ref({ type: '', text: '' })
 
+// --- 新增：演示模式控制逻辑 ---
+// 初始化时读取 localStorage
+const isDemoModeGlobal = ref(localStorage.getItem('DASHBOARD_MODE') === 'demo')
+
+// 切换演示模式
+const toggleGlobalDemoMode = () => {
+  if (isDemoModeGlobal.value) {
+    localStorage.setItem('DASHBOARD_MODE', 'demo')
+    // 开启时，顺便清除旧的缓存，确保持久化的是新数据
+    sessionStorage.removeItem('DASHBOARD_MOCK_DATA')
+    showMessage('success', '✨ 演示模式已开启！进入大屏将展示随机数据')
+  } else {
+    localStorage.removeItem('DASHBOARD_MODE')
+    sessionStorage.removeItem('DASHBOARD_MOCK_DATA')
+    showMessage('info', '演示模式已关闭，恢复真实数据')
+  }
+}
+// ----------------------------
+
 // 表单数据
 const formData = ref({
   dashboard_title: '',
@@ -51,7 +70,8 @@ const previewConfig = computed(() => ({
   title: formData.value.dashboard_title || '志愿活动数据可视化大屏',
   notice: formData.value.dashboard_notice || '欢迎各位领导莅临指导',
   goalHours: parseInt(formData.value.goal_total_hours) || 5000,
-  showAcademyRank: formData.value.show_academy_rank
+  showAcademyRank: formData.value.show_academy_rank,
+  showGenderRatio: formData.value.show_gender_ratio
 }))
 
 // 渲染近期活动趋势折线图（复用大屏风格，3个月数据，平滑）
@@ -142,12 +162,12 @@ const generateRandomPreviewData = () => {
   previewData.value.academyRank = rankData
 }
 
-// 显示消息提示（3秒后自动消失）
+// 显示消息提示（1.5秒后自动消失）
 const showMessage = (type, text) => {
   message.value = { type, text }
   setTimeout(() => {
     message.value = { type: '', text: '' }
-  }, 3000)
+  }, 1500)
 }
 
 // 加载配置数据
@@ -274,23 +294,23 @@ onUnmounted(() => {
       <p class="text-slate-500 mt-2 text-sm font-medium">配置和维护数据可视化大屏的展示内容，右侧可实时预览效果</p>
     </div>
 
-    <!-- 消息提示 -->
+    <!-- 消息提示 - 固定在页面顶部 -->
     <transition
       enter-active-class="transition ease-out duration-300"
-      enter-from-class="opacity-0 transform translate-y-2"
+      enter-from-class="opacity-0 transform -translate-y-full"
       enter-to-class="opacity-100 transform translate-y-0"
       leave-active-class="transition ease-in duration-200"
       leave-from-class="opacity-100 transform translate-y-0"
-      leave-to-class="opacity-0 transform translate-y-2"
+      leave-to-class="opacity-0 transform -translate-y-full"
     >
-      <div v-if="message.text" 
+      <div v-if="message.text"
            :class="[
-             'p-4 rounded-lg border flex items-start gap-3 mb-6',
+             'fixed top-4 left-1/2 transform -translate-x-1/2 z-50 p-4 rounded-lg border flex items-center gap-3 shadow-lg min-w-[400px] max-w-[600px]',
              message.type === 'success' ? 'bg-green-50 border-green-200 text-green-800' : '',
              message.type === 'error' ? 'bg-red-50 border-red-200 text-red-800' : '',
              message.type === 'info' ? 'bg-blue-50 border-blue-200 text-blue-800' : ''
            ]">
-        <AlertCircle class="w-5 h-5 mt-0.5 flex-shrink-0" />
+        <AlertCircle class="w-5 h-5 flex-shrink-0" />
         <p class="text-sm font-medium">{{ message.text }}</p>
       </div>
     </transition>
@@ -359,6 +379,27 @@ onUnmounted(() => {
             </CardTitle>
           </CardHeader>
           <CardContent class="p-6 space-y-4">
+            
+            <!-- 演示模式总开关 -->
+            <div class="flex items-center justify-between p-4 bg-blue-50 border border-blue-100 rounded-lg mb-6">
+              <div>
+                <div class="flex items-center gap-2">
+                  <Sparkles class="w-4 h-4 text-blue-600" />
+                  <p class="font-bold text-blue-800">启用演示/答辩模式</p>
+                </div>
+                <p class="text-xs text-blue-600 mt-1">开启后，大屏将忽略后端数据，使用自动生成的随机仿真数据</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  v-model="isDemoModeGlobal"
+                  @change="toggleGlobalDemoMode"
+                  class="sr-only peer"
+                >
+                <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+
             <p class="text-sm text-slate-500 mb-4">控制大屏上各个图表模块的显示/隐藏</p>
             
             <!-- 学院排名开关 -->
@@ -521,7 +562,7 @@ onUnmounted(() => {
               </div>
 
               <!-- 学院排名（根据开关显示） -->
-              <div v-if="previewConfig.showAcademyRank" class="bg-slate-800/50 rounded-lg p-4">
+              <div v-if="previewConfig.showAcademyRank" class="bg-slate-800/50 rounded-lg p-4 mb-4">
                 <div class="text-sm font-medium mb-3 text-slate-300">学院活跃度排行</div>
                 <div class="space-y-2">
                   <div v-for="(item, index) in previewData.academyRank"
@@ -539,8 +580,27 @@ onUnmounted(() => {
                   </div>
                 </div>
               </div>
-              <div v-else class="bg-slate-800/50 rounded-lg p-4 text-center text-slate-500 text-sm">
+              <div v-else class="bg-slate-800/50 rounded-lg p-4 text-center text-slate-500 text-sm mb-4">
                 学院排名已隐藏
+              </div>
+
+              <!-- 男女参与比例（根据开关显示） -->
+              <div v-if="previewConfig.showGenderRatio" class="bg-slate-800/50 rounded-lg p-4">
+                <div class="text-sm font-medium mb-3 text-slate-300">男女参与比例</div>
+                <div class="flex items-center justify-center gap-8">
+                  <div class="text-center">
+                    <div class="text-3xl font-bold text-blue-400">58%</div>
+                    <div class="text-xs text-slate-400 mt-1">男生</div>
+                  </div>
+                  <div class="text-slate-600 text-2xl">|</div>
+                  <div class="text-center">
+                    <div class="text-3xl font-bold text-pink-400">42%</div>
+                    <div class="text-xs text-slate-400 mt-1">女生</div>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="bg-slate-800/50 rounded-lg p-4 text-center text-slate-500 text-sm">
+                男女参与比例已隐藏
               </div>
 
               <!-- 提示信息 -->

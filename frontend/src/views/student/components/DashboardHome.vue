@@ -568,17 +568,31 @@ onMounted(async () => {
   // 1. 检查演示模式
   isMockMode.value = checkMockMode()
   
-  // 2. 加载基础配置
+  // 2. 加载基础配置（必须先加载配置）
   await loadDashboardConfig()
   
-  // 3. 初始化图表实例（空图表）
+  console.log('📋 配置加载完成:', {
+    show_academy_rank: dashboardConfig.value.show_academy_rank,
+    show_gender_ratio: dashboardConfig.value.show_gender_ratio
+  })
+  
+  // 3. 初始化图表实例（空图表）- 根据配置决定是否初始化
   await initLineChart()
+  
   if (dashboardConfig.value.show_academy_rank) {
     await initPieChart()
+    console.log('✅ 学院排名图表已初始化')
+  } else {
+    console.log('⏭️ 学院排名图表已跳过')
   }
+  
   await initBarChart()
+  
   if (dashboardConfig.value.show_gender_ratio) {
     await initGenderPieChart()
+    console.log('✅ 男女比例图表已初始化')
+  } else {
+    console.log('⏭️ 男女比例图表已跳过')
   }
   
   // 4. 数据注入
