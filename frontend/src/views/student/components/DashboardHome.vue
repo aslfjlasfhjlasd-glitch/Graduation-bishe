@@ -729,21 +729,8 @@ defineExpose({
 
     <!-- 3. 中间趋势分析区域 -->
     <div class="grid gap-6 md:grid-cols-12">
-      <!-- 左侧卡片 - 根据配置调整宽度 -->
-      <Card 
-        :class="dashboardConfig.show_academy_rank ? 'hover:shadow-lg transition-shadow duration-300 flex flex-col md:col-span-7 lg:col-span-8' : 'hover:shadow-lg transition-shadow duration-300 flex flex-col md:col-span-12'"
-      >
-        <CardContent class="p-6 flex-1 flex flex-col">
-          <div class="flex items-center gap-2 h-[28px] mb-4">
-            <TrendingUp class="w-5 h-5 text-blue-600" />
-            <h3 class="text-lg font-semibold text-slate-800">近半年活动趋势</h3>
-          </div>
-          <div ref="lineChartRef" class="w-full h-[300px]"></div>
-        </CardContent>
-      </Card>
-
-      <!-- 右侧卡片 - 根据配置显示/隐藏 -->
-      <Card 
+      <!-- 左侧卡片 - 各学院参与度占比 -->
+      <Card
         v-if="dashboardConfig.show_academy_rank"
         class="md:col-span-5 lg:col-span-4 hover:shadow-lg transition-shadow duration-300 flex flex-col"
       >
@@ -755,6 +742,19 @@ defineExpose({
           <div class="relative w-full h-[300px]">
             <div ref="pieChartRef" class="absolute inset-0"></div>
           </div>
+        </CardContent>
+      </Card>
+
+      <!-- 右侧卡片 - 近半年活动趋势 -->
+      <Card
+        :class="dashboardConfig.show_academy_rank ? 'hover:shadow-lg transition-shadow duration-300 flex flex-col md:col-span-7 lg:col-span-8' : 'hover:shadow-lg transition-shadow duration-300 flex flex-col md:col-span-12'"
+      >
+        <CardContent class="p-6 flex-1 flex flex-col">
+          <div class="flex items-center gap-2 h-[28px] mb-4">
+            <TrendingUp class="w-5 h-5 text-blue-600" />
+            <h3 class="text-lg font-semibold text-slate-800">近半年活动趋势</h3>
+          </div>
+          <div ref="lineChartRef" class="w-full h-[300px]"></div>
         </CardContent>
       </Card>
     </div>
