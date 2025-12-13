@@ -223,6 +223,13 @@ public interface StudentActivityMapper {
     List<VolunteerActivity> findHotActivities(@Param("limit") Integer limit);
     
     /**
+     * 获取热门活动（带浏览量阈值）
+     * @param limit 限制数量
+     * @param minViews 最低浏览次数
+     */
+    List<VolunteerActivity> findHotActivitiesWithThreshold(@Param("limit") int limit, @Param("minViews") int minViews);
+    
+    /**
      * 获取所有学生ID（用于模拟数据生成）
      */
     @Select("SELECT XS_XH FROM t_xs")

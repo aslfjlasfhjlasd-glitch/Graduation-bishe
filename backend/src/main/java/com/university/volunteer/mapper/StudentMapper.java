@@ -6,38 +6,40 @@ import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
-/**
- * 学生数据访问层
- */
 @Mapper
 public interface StudentMapper {
+    Student findByXh(String xh);
     
-    // 根据用户名查询学生（登录用）
-    Student findByUsername(@Param("username") String username);
+    Student findById(Integer xsId);
     
-    // 根据学号查询学生完整信息
-    Student findStudentById(@Param("studentId") Integer studentId);
+    Student findByUsername(String username);
     
-    // 更新学生信息（学生权限）
+    Student findStudentById(Integer xsId);
+    
+    void updateStudent(Student student);
+    
     int updateStudentProfile(Student student);
     
-    // 更新学生完整信息（管理员权限）
     int updateStudentFullInfo(Student student);
     
-    // 更新学生密码
     int updatePassword(@Param("studentId") Integer studentId, @Param("newPassword") String newPassword);
     
-    // ========== 管理员账号管理功能 ==========
+    List<Student> findAll();
     
-    // 分页查询学生列表
-    List<Student> findStudentsByPage(@Param("keyword") String keyword);
-    
-    // 检查学号是否存在
-    Integer existsByStudentId(@Param("studentId") Integer studentId);
-    
-    // 插入新学生
     int insertStudent(Student student);
     
-    // 删除学生
-    int deleteStudent(@Param("studentId") Integer studentId);
+    int deleteStudent(Integer xsId);
+    
+    List<Student> searchStudents(@Param("xh") String xh,
+                                 @Param("xm") String xm,
+                                 @Param("xyBh") Integer xyBh);
+    
+    List<Student> findStudentsByPage(@Param("keyword") String keyword);
+    
+    Integer existsByStudentId(Integer studentId);
+    
+    /**
+     * 统计学生总数
+     */
+    int countAllStudents();
 }

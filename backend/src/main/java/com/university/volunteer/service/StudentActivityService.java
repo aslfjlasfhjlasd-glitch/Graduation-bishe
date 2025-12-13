@@ -379,34 +379,57 @@ public class StudentActivityService {
             
             // 4. 兜底策略：如果推荐结果少于5个，补充热门活动
             if (recommendList.size() < 5) {
-                List<VolunteerActivity> hotActivities = studentActivityMapper.findHotActivities(10);
+                // ------------------ 修改开始 ------------------
+                
+                // 步骤A：获取学生总数
+                int totalStudents = 0;
+                try {
+                    totalStudents = studentMapper.countAllStudents();
+                } catch (Exception e) {
+                    // 防止统计失败影响推荐，给个默认值或打日志
+                    e.printStackTrace();
+                }
+
+                // 步骤B：计算阈值 (10%)
+                // 如果是新系统学生很少，至少要求1次浏览
+                int minViewsThreshold = Math.max(1, (int) Math.ceil(totalStudents * 0.1));
+                
+                // 步骤C：查询符合条件的热门活动
+                List<VolunteerActivity> hotActivities = studentActivityMapper.findHotActivitiesWithThreshold(10, minViewsThreshold);
+                
+                // ------------------ 修改结束 ------------------
                 
                 // 去重：排除已经在推荐列表中的活动
                 Set<Integer> existingActivityIds = recommendList.stream()
                         .map(dto -> dto.getActivity().getHdBh())
                         .collect(Collectors.toSet());
                 
-                for (VolunteerActivity hotActivity : hotActivities) {
-                    if (recommendList.size() >= 10) {
-                        break; // 最多推荐10个
-                    }
-                    
-                    if (!existingActivityIds.contains(hotActivity.getHdBh())) {
-                        List<Tag> activityTags = activityTagMapper.findTagsByActivityId(hotActivity.getHdBh());
+                if (hotActivities != null) {
+                    for (VolunteerActivity hotActivity : hotActivities) {
+                        if (recommendList.size() >= 10) {
+                            break; // 最多推荐10个
+                        }
                         
-                        // 热门活动也使用综合评分（但标签匹配为0）
-                        int signupCount = hotActivity.getYbmRs() != null ? hotActivity.getYbmRs() : 0;
-                        int viewCount = hotActivity.getLlCs() != null ? hotActivity.getLlCs() : 0;
-                        double comprehensiveScore = (signupCount * 2.0) + (viewCount * 0.3);
-                        
-                        ActivityRecommendDTO dto = new ActivityRecommendDTO();
-                        dto.setActivity(hotActivity);
-                        dto.setMatchScore((int) comprehensiveScore);
-                        dto.setMatchedTags(new ArrayList<>());
-                        dto.setActivityTags(activityTags);
-                        dto.setRecommendType("HOT");
-                        recommendList.add(dto);
-                        existingActivityIds.add(hotActivity.getHdBh());
+                        if (!existingActivityIds.contains(hotActivity.getHdBh())) {
+                            List<Tag> activityTags = hotActivity.getTags();
+                            if (activityTags == null) {
+                                activityTags = activityTagMapper.findTagsByActivityId(hotActivity.getHdBh());
+                            }
+                            
+                            // 热门活动也使用综合评分（但标签匹配为0）
+                            int signupCount = hotActivity.getYbmRs() != null ? hotActivity.getYbmRs() : 0;
+                            int viewCount = hotActivity.getLlCs() != null ? hotActivity.getLlCs() : 0;
+                            double comprehensiveScore = (signupCount * 2.0) + (viewCount * 0.3);
+                            
+                            ActivityRecommendDTO dto = new ActivityRecommendDTO();
+                            dto.setActivity(hotActivity);
+                            dto.setMatchScore((int) comprehensiveScore);
+                            dto.setMatchedTags(new ArrayList<>());
+                            dto.setActivityTags(activityTags);
+                            dto.setRecommendType("HOT"); // 标识为热门推荐
+                            recommendList.add(dto);
+                            existingActivityIds.add(hotActivity.getHdBh());
+                        }
                     }
                 }
             }

@@ -107,4 +107,9 @@
         DELETE FROM t_xs WHERE XS_XH = #{studentId}
     </delete>
 
+    <!-- 统计学生总数 -->
+    <select id="countAllStudents" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM t_xs
+    </select>
+
 </mapper>
