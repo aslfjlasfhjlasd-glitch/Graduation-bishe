@@ -1,6 +1,9 @@
 package com.university.volunteer.service;
 
 import com.university.volunteer.common.Result;
+import com.university.volunteer.dto.AccountCreateDTO;
+import com.university.volunteer.dto.AccountUpdateDTO;
+import com.university.volunteer.dto.HeadAccountDTO;
 import com.university.volunteer.entity.*;
 import com.university.volunteer.mapper.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -710,5 +713,267 @@ public class DepartmentHeadService {
 
     private String nullSafe(Object obj) {
         return obj == null ? "-" : obj.toString();
+    }
+
+    // ========== 管理员账号管理功能 ==========
+
+    /**
+     * 分页查询负责人列表（管理员用）
+     * 合并校级部门负责人和学院负责人
+     */
+    public Result<Map<String, Object>> getDepartmentHeadsByPage(String keyword, int page, int size) {
+        try {
+            List<HeadAccountDTO> allHeads = new ArrayList<>();
+            
+            // 1. 查询校级部门负责人
+            List<DepartmentHead> deptHeads = departmentHeadMapper.findDepartmentHeadsByPage(keyword);
+            for (DepartmentHead head : deptHeads) {
+                HeadAccountDTO dto = new HeadAccountDTO();
+                dto.setUsername(head.getXjbmfzrZh());
+                dto.setName(head.getXjbmfzrXm());
+                dto.setDepartment(head.getXjbmMc());
+                dto.setPhone(head.getXjbmfzrDh());
+                dto.setType("department");
+                allHeads.add(dto);
+            }
+            
+            // 2. 查询学院负责人
+            List<Academy> academies = academyMapper.findAcademiesByPage(keyword);
+            for (Academy academy : academies) {
+                HeadAccountDTO dto = new HeadAccountDTO();
+                dto.setUsername(academy.getXyZh());
+                dto.setName(academy.getFzrXm());
+                dto.setDepartment(academy.getXyMc());
+                dto.setPhone(academy.getXyDh());
+                dto.setType("academy");
+                allHeads.add(dto);
+            }
+            
+            // 3. 手动分页处理
+            int total = allHeads.size();
+            int start = (page - 1) * size;
+            int end = Math.min(start + size, total);
+            
+            List<HeadAccountDTO> pageData = start < total ? allHeads.subList(start, end) : new ArrayList<>();
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("list", pageData);
+            result.put("total", total);
+            result.put("page", page);
+            result.put("size", size);
+            
+            return Result.success(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("查询负责人列表失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 创建负责人账号（管理员用）
+     * 根据 accountType 决定创建校级部门负责人还是学院负责人
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public Result<String> createDepartmentHead(AccountCreateDTO dto) {
+        try {
+            // 1. 验证必填字段
+            if (dto.getCode() == null || dto.getCode().trim().isEmpty()) {
+                return Result.error("账号不能为空");
+            }
+            if (dto.getUsername() == null || dto.getUsername().trim().isEmpty()) {
+                return Result.error("姓名不能为空");
+            }
+            if (dto.getDepartment() == null || dto.getDepartment().trim().isEmpty()) {
+                return Result.error("部门/学院不能为空");
+            }
+            
+            // 2. 设置默认密码
+            String password = dto.getPassword();
+            if (password == null || password.trim().isEmpty()) {
+                password = "123456";
+            }
+            
+            // 3. 根据类型创建不同的账号
+            String accountType = dto.getAccountType();
+            if ("academy".equals(accountType)) {
+                // 创建学院负责人
+                Integer count = academyMapper.existsByUsername(dto.getCode());
+                if (count != null && count > 0) {
+                    return Result.error("学院账号已存在");
+                }
+                
+                Academy academy = new Academy();
+                academy.setXyZh(dto.getCode());
+                academy.setXyMc(dto.getDepartment());
+                academy.setFzrXm(dto.getUsername());
+                academy.setXyMm(password);
+                academy.setXyDh(dto.getPhone());
+                
+                int rows = academyMapper.insertAcademy(academy);
+                if (rows > 0) {
+                    return Result.success("学院负责人账号创建成功，初始密码：" + password);
+                } else {
+                    return Result.error("创建失败");
+                }
+            } else {
+                // 创建校级部门负责人（默认）
+                Integer count = departmentHeadMapper.existsByUsername(dto.getCode());
+                if (count != null && count > 0) {
+                    return Result.error("工号已存在");
+                }
+                
+                DepartmentHead head = new DepartmentHead();
+                head.setXjbmfzrZh(dto.getCode());
+                head.setXjbmfzrXm(dto.getUsername());
+                head.setXjbmfzrMm(password);
+                head.setXjbmMc(dto.getDepartment());
+                head.setXjbmfzrDh(dto.getPhone());
+                
+                int rows = departmentHeadMapper.insertDepartmentHead(head);
+                if (rows > 0) {
+                    return Result.success("校级部门负责人账号创建成功，初始密码：" + password);
+                } else {
+                    return Result.error("创建失败");
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("创建负责人账号失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 更新负责人账号（管理员用）
+     * 根据 accountType 更新不同类型的负责人
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public Result<String> updateDepartmentHeadAccount(AccountUpdateDTO dto) {
+        try {
+            if (dto.getId() == null) {
+                return Result.error("账号不能为空");
+            }
+            
+            String username = String.valueOf(dto.getId());
+            String accountType = dto.getAccountType();
+            
+            if ("academy".equals(accountType)) {
+                // 更新学院负责人
+                Academy academy = academyMapper.findByUsername(username);
+                if (academy == null) {
+                    return Result.error("学院负责人不存在");
+                }
+                
+                academy.setFzrXm(dto.getUsername());
+                academy.setXyMc(dto.getDepartment());
+                academy.setXyDh(dto.getPhone());
+                
+                int rows = academyMapper.updateAcademy(academy);
+                
+                if (dto.getPassword() != null && !dto.getPassword().trim().isEmpty()) {
+                    academyMapper.updatePassword(username, dto.getPassword());
+                }
+                
+                if (rows > 0) {
+                    return Result.success("学院负责人信息更新成功");
+                } else {
+                    return Result.error("更新失败");
+                }
+            } else {
+                // 更新校级部门负责人
+                DepartmentHead head = departmentHeadMapper.findByUsername(username);
+                if (head == null) {
+                    return Result.error("校级部门负责人不存在");
+                }
+                
+                head.setXjbmfzrXm(dto.getUsername());
+                head.setXjbmMc(dto.getDepartment());
+                head.setXjbmfzrDh(dto.getPhone());
+                
+                int rows = departmentHeadMapper.updateDepartmentHead(head);
+                
+                if (dto.getPassword() != null && !dto.getPassword().trim().isEmpty()) {
+                    departmentHeadMapper.updatePassword(username, dto.getPassword());
+                }
+                
+                if (rows > 0) {
+                    return Result.success("校级部门负责人信息更新成功");
+                } else {
+                    return Result.error("更新失败");
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("更新负责人信息失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 重置负责人密码（管理员用）
+     * 根据 accountType 重置不同类型负责人的密码
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public Result<String> resetDepartmentHeadPassword(String username, String accountType) {
+        try {
+            if (username == null || username.trim().isEmpty()) {
+                return Result.error("账号不能为空");
+            }
+            
+            String defaultPassword = "123456";
+            int rows = 0;
+            
+            if ("academy".equals(accountType)) {
+                // 重置学院负责人密码
+                Academy academy = academyMapper.findByUsername(username);
+                if (academy == null) {
+                    return Result.error("学院负责人不存在");
+                }
+                rows = academyMapper.updatePassword(username, defaultPassword);
+            } else {
+                // 重置校级部门负责人密码
+                DepartmentHead head = departmentHeadMapper.findByUsername(username);
+                if (head == null) {
+                    return Result.error("校级部门负责人不存在");
+                }
+                rows = departmentHeadMapper.updatePassword(username, defaultPassword);
+            }
+            
+            if (rows > 0) {
+                return Result.success("密码已重置为：" + defaultPassword);
+            } else {
+                return Result.error("密码重置失败");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("重置密码失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 删除负责人账号（管理员用）
+     * 根据 accountType 删除不同类型的负责人
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public Result<String> deleteDepartmentHead(String username, String accountType) {
+        try {
+            if (username == null || username.trim().isEmpty()) {
+                return Result.error("账号不能为空");
+            }
+            
+            int rows = 0;
+            if ("academy".equals(accountType)) {
+                rows = academyMapper.deleteAcademy(username);
+            } else {
+                rows = departmentHeadMapper.deleteDepartmentHead(username);
+            }
+            
+            if (rows > 0) {
+                return Result.success("负责人账号删除成功");
+            } else {
+                return Result.error("删除失败，负责人不存在");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("删除负责人账号失败: " + e.getMessage());
+        }
     }
 }

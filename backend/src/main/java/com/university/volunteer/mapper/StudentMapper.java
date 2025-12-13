@@ -4,6 +4,8 @@ import com.university.volunteer.entity.Student;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.List;
+
 /**
  * 学生数据访问层
  */
@@ -24,4 +26,18 @@ public interface StudentMapper {
     
     // 更新学生密码
     int updatePassword(@Param("studentId") Integer studentId, @Param("newPassword") String newPassword);
+    
+    // ========== 管理员账号管理功能 ==========
+    
+    // 分页查询学生列表
+    List<Student> findStudentsByPage(@Param("keyword") String keyword);
+    
+    // 检查学号是否存在
+    Integer existsByStudentId(@Param("studentId") Integer studentId);
+    
+    // 插入新学生
+    int insertStudent(Student student);
+    
+    // 删除学生
+    int deleteStudent(@Param("studentId") Integer studentId);
 }

@@ -132,3 +132,107 @@ export const generateMockData = (count = 50) => {
 export const clearMockData = () => {
   return axios.delete(`${API_BASE_URL}/mock-data/clear`);
 };
+
+// ==================== 账号管理 API ====================
+
+/**
+ * 获取学生账号列表（分页）
+ * @param {string} keyword 搜索关键词
+ * @param {number} page 页码
+ * @param {number} size 每页大小
+ * @returns {Promise} 学生列表
+ */
+export const getStudentList = (keyword = '', page = 1, size = 10) => {
+  return axios.get(`${API_BASE_URL}/accounts/student/list`, {
+    params: { keyword, page, size }
+  });
+};
+
+/**
+ * 新增学生账号
+ * @param {Object} data 学生账号信息
+ * @returns {Promise} 创建结果
+ */
+export const addStudent = (data) => {
+  return axios.post(`${API_BASE_URL}/accounts/student/add`, data);
+};
+
+/**
+ * 更新学生账号信息
+ * @param {Object} data 学生账号信息
+ * @returns {Promise} 更新结果
+ */
+export const updateStudent = (data) => {
+  return axios.put(`${API_BASE_URL}/accounts/student/update`, data);
+};
+
+/**
+ * 重置学生密码
+ * @param {number} id 学号
+ * @returns {Promise} 重置结果
+ */
+export const resetStudentPassword = (id) => {
+  return axios.post(`${API_BASE_URL}/accounts/student/reset-pwd`, { id });
+};
+
+/**
+ * 删除学生账号
+ * @param {number} id 学号
+ * @returns {Promise} 删除结果
+ */
+export const deleteStudent = (id) => {
+  return axios.delete(`${API_BASE_URL}/accounts/student/${id}`);
+};
+
+/**
+ * 获取负责人账号列表（分页）
+ * @param {string} keyword 搜索关键词
+ * @param {number} page 页码
+ * @param {number} size 每页大小
+ * @returns {Promise} 负责人列表
+ */
+export const getDepartmentHeadList = (keyword = '', page = 1, size = 10) => {
+  return axios.get(`${API_BASE_URL}/accounts/head/list`, {
+    params: { keyword, page, size }
+  });
+};
+
+/**
+ * 新增负责人账号
+ * @param {Object} data 负责人账号信息
+ * @returns {Promise} 创建结果
+ */
+export const addDepartmentHead = (data) => {
+  return axios.post(`${API_BASE_URL}/accounts/head/add`, data);
+};
+
+/**
+ * 更新负责人账号信息
+ * @param {Object} data 负责人账号信息
+ * @returns {Promise} 更新结果
+ */
+export const updateDepartmentHead = (data) => {
+  return axios.put(`${API_BASE_URL}/accounts/head/update`, data);
+};
+
+/**
+ * 重置负责人密码
+ * @param {string} username 账号
+ * @param {string} accountType 账号类型 (department/academy)
+ * @returns {Promise} 重置结果
+ */
+export const resetDepartmentHeadPassword = (username, accountType) => {
+  return axios.post(`${API_BASE_URL}/accounts/head/reset-pwd`, { username, accountType });
+};
+
+/**
+ * 删除负责人账号
+ * @param {string} username 账号
+ * @param {string} accountType 账号类型 (department/academy)
+ * @returns {Promise} 删除结果
+ */
+export const deleteDepartmentHead = (username, accountType) => {
+  return axios.delete(`${API_BASE_URL}/accounts/head/${username}`, {
+    params: { accountType }
+  });
+};

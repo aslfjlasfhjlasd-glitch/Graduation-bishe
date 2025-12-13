@@ -1,12 +1,16 @@
 package com.university.volunteer.controller;
 
 import com.university.volunteer.common.Result;
+import com.university.volunteer.dto.AccountCreateDTO;
+import com.university.volunteer.dto.AccountUpdateDTO;
 import com.university.volunteer.dto.VolunteerAuditDTO;
 import com.university.volunteer.entity.Config;
 import com.university.volunteer.entity.VolunteerActivity;
 import com.university.volunteer.service.AdminService;
 import com.university.volunteer.service.ConfigService;
+import com.university.volunteer.service.DepartmentHeadService;
 import com.university.volunteer.service.MockDataService;
+import com.university.volunteer.service.StudentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,6 +29,12 @@ public class AdminController {
 
     @Autowired
     private MockDataService mockDataService;
+
+    @Autowired
+    private StudentService studentService;
+
+    @Autowired
+    private DepartmentHeadService departmentHeadService;
 
     /**
      * 获取所有活动列表（管理员可以查看所有活动）
@@ -245,5 +255,129 @@ public class AdminController {
         } catch (Exception e) {
             return Result.error("清空数据失败: " + e.getMessage());
         }
+    }
+
+    // ==================== 账号管理接口 ====================
+
+    /**
+     * 获取学生账号列表（分页）
+     * @param keyword 搜索关键词（姓名或学号）
+     * @param page 页码
+     * @param size 每页大小
+     * @return 学生列表
+     */
+    @GetMapping("/accounts/student/list")
+    public Result<Map<String, Object>> getStudentList(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return studentService.getStudentsByPage(keyword, page, size);
+    }
+
+    /**
+     * 新增学生账号
+     * @param dto 学生账号信息
+     * @return 创建结果
+     */
+    @PostMapping("/accounts/student/add")
+    public Result<String> addStudent(@RequestBody AccountCreateDTO dto) {
+        dto.setAccountType("student");
+        return studentService.createStudent(dto);
+    }
+
+    /**
+     * 更新学生账号信息
+     * @param dto 学生账号信息
+     * @return 更新结果
+     */
+    @PutMapping("/accounts/student/update")
+    public Result<String> updateStudent(@RequestBody AccountUpdateDTO dto) {
+        return studentService.updateStudentAccount(dto);
+    }
+
+    /**
+     * 重置学生密码
+     * @param id 学号
+     * @return 重置结果
+     */
+    @PostMapping("/accounts/student/reset-pwd")
+    public Result<String> resetStudentPassword(@RequestBody Map<String, Integer> payload) {
+        Integer id = payload.get("id");
+        if (id == null) {
+            return Result.error("学号不能为空");
+        }
+        return studentService.resetStudentPassword(id);
+    }
+
+    /**
+     * 删除学生账号
+     * @param id 学号
+     * @return 删除结果
+     */
+    @DeleteMapping("/accounts/student/{id}")
+    public Result<String> deleteStudent(@PathVariable Integer id) {
+        return studentService.deleteStudent(id);
+    }
+
+    /**
+     * 获取负责人账号列表（分页）
+     * @param keyword 搜索关键词（姓名或工号）
+     * @param page 页码
+     * @param size 每页大小
+     * @return 负责人列表
+     */
+    @GetMapping("/accounts/head/list")
+    public Result<Map<String, Object>> getDepartmentHeadList(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return departmentHeadService.getDepartmentHeadsByPage(keyword, page, size);
+    }
+
+    /**
+     * 新增负责人账号
+     * @param dto 负责人账号信息
+     * @return 创建结果
+     */
+    @PostMapping("/accounts/head/add")
+    public Result<String> addDepartmentHead(@RequestBody AccountCreateDTO dto) {
+        dto.setAccountType("department_head");
+        return departmentHeadService.createDepartmentHead(dto);
+    }
+
+    /**
+     * 更新负责人账号信息
+     * @param dto 负责人账号信息
+     * @return 更新结果
+     */
+    @PutMapping("/accounts/head/update")
+    public Result<String> updateDepartmentHead(@RequestBody AccountUpdateDTO dto) {
+        return departmentHeadService.updateDepartmentHeadAccount(dto);
+    }
+
+    /**
+     * 重置负责人密码
+     * @param payload 包含账号和类型的请求体
+     * @return 重置结果
+     */
+    @PostMapping("/accounts/head/reset-pwd")
+    public Result<String> resetDepartmentHeadPassword(@RequestBody Map<String, String> payload) {
+        String username = payload.get("username");
+        String accountType = payload.get("accountType");
+        if (username == null || username.trim().isEmpty()) {
+            return Result.error("账号不能为空");
+        }
+        return departmentHeadService.resetDepartmentHeadPassword(username, accountType);
+    }
+
+    /**
+     * 删除负责人账号
+     * @param username 账号
+     * @param accountType 账号类型
+     * @return 删除结果
+     */
+    @DeleteMapping("/accounts/head/{username}")
+    public Result<String> deleteDepartmentHead(@PathVariable String username, @RequestParam(required = false) String accountType) {
+        return departmentHeadService.deleteDepartmentHead(username, accountType);
     }
 }

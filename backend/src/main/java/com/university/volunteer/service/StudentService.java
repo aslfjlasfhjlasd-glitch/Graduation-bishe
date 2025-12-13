@@ -1,6 +1,8 @@
 package com.university.volunteer.service;
 
 import com.university.volunteer.common.Result;
+import com.university.volunteer.dto.AccountCreateDTO;
+import com.university.volunteer.dto.AccountUpdateDTO;
 import com.university.volunteer.entity.Student;
 import com.university.volunteer.entity.StudentTag;
 import com.university.volunteer.entity.Tag;
@@ -12,7 +14,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -223,6 +227,198 @@ public class StudentService {
         } catch (Exception e) {
             e.printStackTrace();
             return Result.error("密码修改失败: " + e.getMessage());
+        }
+    }
+
+    // ========== 管理员账号管理功能 ==========
+
+    /**
+     * 分页查询学生列表（管理员用）
+     */
+    public Result<Map<String, Object>> getStudentsByPage(String keyword, int page, int size) {
+        try {
+            // 使用 PageHelper 进行分页
+            List<Student> students = studentMapper.findStudentsByPage(keyword);
+            
+            // 手动分页处理
+            int total = students.size();
+            int start = (page - 1) * size;
+            int end = Math.min(start + size, total);
+            
+            List<Student> pageData = students.subList(start, end);
+            
+            // 清除密码信息
+            for (Student student : pageData) {
+                student.setXsMm(null);
+            }
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("list", pageData);
+            result.put("total", total);
+            result.put("page", page);
+            result.put("size", size);
+            
+            return Result.success(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("查询学生列表失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 创建学生账号（管理员用）
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public Result<String> createStudent(AccountCreateDTO dto) {
+        try {
+            // 1. 验证必填字段
+            if (dto.getCode() == null || dto.getCode().trim().isEmpty()) {
+                return Result.error("学号不能为空");
+            }
+            if (dto.getUsername() == null || dto.getUsername().trim().isEmpty()) {
+                return Result.error("姓名不能为空");
+            }
+            if (dto.getAcademy() == null || dto.getAcademy().trim().isEmpty()) {
+                return Result.error("学院不能为空");
+            }
+            
+            // 2. 验证学号格式（必须为数字）
+            Integer studentId;
+            try {
+                studentId = Integer.parseInt(dto.getCode());
+            } catch (NumberFormatException e) {
+                return Result.error("学号必须为数字");
+            }
+            
+            // 3. 检查学号是否已存在（查重）
+            Integer count = studentMapper.existsByStudentId(studentId);
+            if (count != null && count > 0) {
+                return Result.error("学号已存在");
+            }
+            
+            // 4. 设置默认密码（如果未提供）
+            String password = dto.getPassword();
+            if (password == null || password.trim().isEmpty()) {
+                password = "123456"; // 默认密码
+            }
+            
+            // 5. 创建学生对象
+            Student student = new Student();
+            student.setXsXh(studentId);
+            student.setXsXm(dto.getUsername());
+            student.setXsMm(password); // 密码以明文存储（与登录逻辑一致）
+            student.setSsXy(dto.getAcademy());
+            student.setXsDh(dto.getPhone());
+            
+            // 设置新增的字段
+            student.setXsXb(dto.getGender());
+            student.setZzmm(dto.getPoliticalStatus());
+            student.setBjMc(dto.getClassName());
+            
+            // 6. 插入数据库
+            int rows = studentMapper.insertStudent(student);
+            if (rows > 0) {
+                return Result.success("学生账号创建成功，初始密码：" + password);
+            } else {
+                return Result.error("创建失败");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("创建学生账号失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 更新学生账号（管理员用）
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public Result<String> updateStudentAccount(AccountUpdateDTO dto) {
+        try {
+            if (dto.getId() == null) {
+                return Result.error("学号不能为空");
+            }
+            
+            Student student = new Student();
+            student.setXsXh(dto.getId());
+            student.setXsXm(dto.getUsername());
+            student.setSsXy(dto.getAcademy());
+            student.setXsDh(dto.getPhone());
+            
+            // 设置新增的字段
+            student.setXsXb(dto.getGender());
+            student.setZzmm(dto.getPoliticalStatus());
+            student.setBjMc(dto.getClassName());
+            
+            // 如果提供了密码，则更新密码
+            if (dto.getPassword() != null && !dto.getPassword().trim().isEmpty()) {
+                student.setXsMm(dto.getPassword());
+            }
+            
+            int rows = studentMapper.updateStudentFullInfo(student);
+            if (rows > 0) {
+                return Result.success("学生信息更新成功");
+            } else {
+                return Result.error("更新失败，学生不存在");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("更新学生信息失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 重置学生密码（管理员用）
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public Result<String> resetStudentPassword(Integer studentId) {
+        try {
+            if (studentId == null) {
+                return Result.error("学号不能为空");
+            }
+            
+            // 检查学生是否存在
+            Student student = studentMapper.findStudentById(studentId);
+            if (student == null) {
+                return Result.error("学生不存在");
+            }
+            
+            // 重置为默认密码
+            String defaultPassword = "123456";
+            int rows = studentMapper.updatePassword(studentId, defaultPassword);
+            if (rows > 0) {
+                return Result.success("密码已重置为：" + defaultPassword);
+            } else {
+                return Result.error("密码重置失败");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("重置密码失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 删除学生账号（管理员用）
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public Result<String> deleteStudent(Integer studentId) {
+        try {
+            if (studentId == null) {
+                return Result.error("学号不能为空");
+            }
+            
+            // 先删除学生的标签关联
+            studentTagMapper.deleteByStudentId(studentId);
+            
+            // 再删除学生记录
+            int rows = studentMapper.deleteStudent(studentId);
+            if (rows > 0) {
+                return Result.success("学生账号删除成功");
+            } else {
+                return Result.error("删除失败，学生不存在");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("删除学生账号失败: " + e.getMessage());
         }
     }
 }

@@ -81,12 +81,12 @@ export const generateDashboardMock = (goalTotalHours = 5000) => {
   // ========== 第三步：生成饼图数据（各学院参与度） ==========
   
   const academies = [
-    '计算机学院',
-    '经济管理学院',
-    '机械工程学院',
-    '外国语学院',
+    '语言文化学院',
+    '国商学院',
+    '教育学院',
+    '文化和旅游学院',
     '艺术学院',
-    '理学院'
+    '马克思主义学院'
   ]
   
   const academyData = academies.map(name => ({

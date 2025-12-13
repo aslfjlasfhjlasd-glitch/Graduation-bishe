@@ -11,7 +11,7 @@
  Target Server Version : 90500 (9.5.0)
  File Encoding         : 65001
 
- Date: 12/12/2025 22:11:04
+ Date: 13/12/2025 11:57:39
 */
 
 SET NAMES utf8mb4;
@@ -30,15 +30,16 @@ CREATE TABLE `sys_config`  (
   `update_time` datetime NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`config_id`) USING BTREE,
   UNIQUE INDEX `uk_config_key`(`config_key` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 7 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '系统全局配置表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 8 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '系统全局配置表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of sys_config
 -- ----------------------------
-INSERT INTO `sys_config` VALUES (1, 'dashboard_title', '高校志愿活动智能大数据平台', '大屏主标题', '大屏顶部显示的系统名称', '2025-12-12 21:32:32');
-INSERT INTO `sys_config` VALUES (2, 'dashboard_notice', '欢迎各位领导莅临指导，本学期志愿活动火热进行中！', '大屏滚动公告', '大屏顶部的跑马灯文字', '2025-12-12 21:32:32');
-INSERT INTO `sys_config` VALUES (3, 'goal_total_hours', '5000', '学期目标工时', '用于展示仪表盘进度的分母值', '2025-12-12 21:32:32');
-INSERT INTO `sys_config` VALUES (4, 'show_academy_rank', 'true', '显示学院排名', '控制是否显示学院活跃度排行 (true/false)', '2025-12-12 21:32:32');
+INSERT INTO `sys_config` VALUES (1, 'dashboard_title', '高校志愿活动智能大数据平台', '大屏主标题', '大屏顶部显示的系统名称', '2025-12-13 11:15:40');
+INSERT INTO `sys_config` VALUES (2, 'dashboard_notice', '欢迎各位领导莅临指导，本学期志愿活动火热进行中！', '大屏滚动公告', '大屏顶部的跑马灯文字', '2025-12-13 11:15:40');
+INSERT INTO `sys_config` VALUES (3, 'goal_total_hours', '5000', '学期目标工时', '用于展示仪表盘进度的分母值', '2025-12-13 11:15:40');
+INSERT INTO `sys_config` VALUES (4, 'show_academy_rank', 'true', '显示学院排名', '控制是否显示学院活跃度排行 (true/false)', '2025-12-13 11:15:40');
+INSERT INTO `sys_config` VALUES (7, 'show_gender_ratio', 'true', '显示男女比例图', '控制是否显示学生性别分布饼图 (true/false)', '2025-12-13 11:15:40');
 
 -- ----------------------------
 -- Table structure for t_bj

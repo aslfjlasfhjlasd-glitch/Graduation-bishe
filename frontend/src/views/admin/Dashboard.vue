@@ -11,7 +11,8 @@ import {
   ChevronRight,
   FileCheck,
   Upload,
-  GraduationCap
+  GraduationCap,
+  Users
 } from 'lucide-vue-next'
 import Button from '@/components/ui/button/button.vue'
 import { Card, CardContent } from '@/components/ui/card'
@@ -22,6 +23,7 @@ const ActivityDesign = defineAsyncComponent(() => import('@/views/college-univer
 const ActivityManagement = defineAsyncComponent(() => import('./components/ActivityManagement.vue'))
 const VolunteerReview = defineAsyncComponent(() => import('./components/VolunteerReview.vue'))
 const DashboardMaintenance = defineAsyncComponent(() => import('./components/DashboardMaintenance.vue'))
+const AccountManagement = defineAsyncComponent(() => import('./components/AccountManagement.vue'))
 
 const router = useRouter()
 
@@ -158,17 +160,31 @@ const handleLogout = () => {
         </div>
 
         <!-- 菜单项：数据可视化大屏维护 -->
-        <button 
+        <button
           @click="handleMenuClick('dashboard-maintenance')"
           :class="[
             'w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group',
-            activeMenu === 'dashboard-maintenance' 
-              ? 'bg-red-600 text-white shadow-md shadow-red-900/20' 
+            activeMenu === 'dashboard-maintenance'
+              ? 'bg-red-600 text-white shadow-md shadow-red-900/20'
               : 'text-slate-400 hover:bg-slate-800 hover:text-white'
           ]"
         >
           <Settings class="w-4 h-4 transition-colors group-hover:text-white" :class="activeMenu === 'dashboard-maintenance' ? 'text-white' : 'text-slate-400'" />
           数据可视化大屏维护
+        </button>
+
+        <!-- 菜单项：账号管理维护 -->
+        <button
+          @click="handleMenuClick('account-management')"
+          :class="[
+            'w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group',
+            activeMenu === 'account-management'
+              ? 'bg-red-600 text-white shadow-md shadow-red-900/20'
+              : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+          ]"
+        >
+          <Users class="w-4 h-4 transition-colors group-hover:text-white" :class="activeMenu === 'account-management' ? 'text-white' : 'text-slate-400'" />
+          账号管理维护
         </button>
 
       </nav>
@@ -195,7 +211,8 @@ const handleLogout = () => {
               activeMenu === 'activity-design' ? '志愿活动管理 / 志愿活动设计' :
               activeMenu === 'activity-management' ? '志愿活动管理 / 活动审核管理' :
               activeMenu === 'activity-review' ? '志愿活动管理 / 志愿者审核' :
-              activeMenu === 'dashboard-maintenance' ? '数据可视化大屏维护' : '欢迎'
+              activeMenu === 'dashboard-maintenance' ? '数据可视化大屏维护' :
+              activeMenu === 'account-management' ? '账号管理维护' : '欢迎'
             }}
           </h2>
         </div>
@@ -233,6 +250,7 @@ const handleLogout = () => {
           <ActivityManagement v-else-if="activeMenu === 'activity-management'" />
           <VolunteerReview v-else-if="activeMenu === 'activity-review'" />
           <DashboardMaintenance v-else-if="activeMenu === 'dashboard-maintenance'" />
+          <AccountManagement v-else-if="activeMenu === 'account-management'" />
           <div v-else class="grid gap-6">
             <Card class="bg-white border-slate-100 shadow-sm min-h-[300px]">
               <CardContent class="p-12 text-slate-400 text-center">模块建设中</CardContent>
