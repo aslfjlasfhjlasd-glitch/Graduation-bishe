@@ -227,20 +227,20 @@ public class DepartmentHeadService {
      */
     public Result<List<ActivityRegistration>> getRegistrationsByHead(String username) {
         try {
-            // 先获取负责人信息以确定部门/学院名称
-            Result<Map<String, Object>> headInfoResult = getHeadInfo(username);
+        // 先获取负责人信息以确定部门/学院名称
+        Result<Map<String, Object>> headInfoResult = getHeadInfo(username);
             if (headInfoResult.getCode() != 200 || headInfoResult.getData() == null) {
-                return Result.error("获取负责人信息失败");
-            }
+            return Result.error("获取负责人信息失败");
+        }
 
-            String department = (String) headInfoResult.getData().get("department");
-            if (department == null || department.isEmpty()) {
-                return Result.error("未找到部门/学院信息");
-            }
+        String department = (String) headInfoResult.getData().get("department");
+        if (department == null || department.isEmpty()) {
+            return Result.error("未找到部门/学院信息");
+        }
 
-            // 根据部门/学院名称查询报名记录
-            List<ActivityRegistration> registrations = studentActivityMapper.findRegistrationsByDepartment(department);
-            return Result.success(registrations);
+        // 根据部门/学院名称查询报名记录
+        List<ActivityRegistration> registrations = studentActivityMapper.findRegistrationsByDepartment(department);
+        return Result.success(registrations);
         } catch (Exception e) {
             e.printStackTrace();
             return Result.error("获取报名记录失败：" + e.getMessage());

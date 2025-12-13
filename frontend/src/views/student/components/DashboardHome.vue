@@ -1,6 +1,7 @@
-<script setup>
+<script setup lang="ts">
 import { onMounted, ref, onUnmounted } from 'vue'
 import axios from 'axios'
+import type { EChartsType } from 'echarts'
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 import { Card, CardContent } from '@/components/ui/card'
 import { 
@@ -13,21 +14,32 @@ import {
 } from 'lucide-vue-next'
 
 // DOM 引用
-const lineChartRef = ref(null)
-const pieChartRef = ref(null)
-const barChartRef = ref(null)
+const lineChartRef = ref<HTMLElement | null>(null)
+const pieChartRef = ref<HTMLElement | null>(null)
+const barChartRef = ref<HTMLElement | null>(null)
+const genderPieRef = ref<HTMLElement | null>(null)
 
 // 图表实例
-let lineChart = null
-let pieChart = null
-let barChart = null
+let lineChart: EChartsType | null = null
+let pieChart: EChartsType | null = null
+let barChart: EChartsType | null = null
+let genderPieChart: EChartsType | null = null
 
 // 配置数据
-const dashboardConfig = ref({
+type DashboardConfig = {
+  dashboard_title: string
+  dashboard_notice: string
+  goal_total_hours: number
+  show_academy_rank: boolean
+  show_gender_ratio: boolean
+}
+
+const dashboardConfig = ref<DashboardConfig>({
   dashboard_title: '志愿活动数据可视化大屏',
   dashboard_notice: '欢迎各位领导莅临指导，本学期志愿活动火热进行中！',
   goal_total_hours: 5000,
-  show_academy_rank: true
+  show_academy_rank: true,
+  show_gender_ratio: true
 })
 
 // 模拟数据
@@ -37,21 +49,46 @@ const metrics = {
   totalHours: 12450
 }
 
+// 参与率数据源
+const participationRange = ref<'3m' | '6m'>('6m')
+const baseParticipation = {
+  months6: ['7月', '8月', '9月', '10月', '11月', '12月'],
+  values6: [65, 70, 85, 88, 82, 92],
+  months3: ['10月', '11月', '12月'],
+  values3: [70, 78, 82]
+}
+
 // 加载配置信息
 const loadDashboardConfig = async () => {
   try {
     const response = await axios.get(`${API_BASE}/api/dashboard/configs`)
     if (response.data.code === 200) {
-      const configs = response.data.data
-      // 更新配置
-      Object.keys(configs).forEach(key => {
-        if (key in dashboardConfig.value) {
-          dashboardConfig.value[key] = configs[key]
+      const configs: Record<string, any> = response.data.data || {}
+      const current = dashboardConfig.value
+      
+      // 分别处理每个字段，避免类型推断问题
+      if ('dashboard_title' in configs && typeof configs.dashboard_title === 'string') {
+        current.dashboard_title = configs.dashboard_title
+      }
+      if ('dashboard_notice' in configs && typeof configs.dashboard_notice === 'string') {
+        current.dashboard_notice = configs.dashboard_notice
+      }
+      if ('goal_total_hours' in configs) {
+        const num = Number(configs.goal_total_hours)
+        if (!isNaN(num)) {
+          current.goal_total_hours = num
         }
-      })
+      }
+      if ('show_academy_rank' in configs) {
+        current.show_academy_rank = configs.show_academy_rank === 'true' || configs.show_academy_rank === true
+      }
+      if ('show_gender_ratio' in configs) {
+        current.show_gender_ratio = configs.show_gender_ratio === 'true' || configs.show_gender_ratio === true
+      }
+      
       console.log('大屏配置加载成功:', dashboardConfig.value)
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('加载大屏配置失败:', error)
     // 使用默认配置
   }
@@ -135,7 +172,7 @@ const initPieChart = async () => {
     if (response.data.code === 200) {
       // 规整数据格式，确保名称与数值类型正确
       const raw = Array.isArray(response.data.data) ? response.data.data : []
-      data = raw.map((item) => ({
+      data = raw.map((item: any) => ({
         name: String(item.name ?? ''),
         value: Number(item.value ?? 0)
       }))
@@ -157,6 +194,7 @@ const initPieChart = async () => {
           name: '参与度占比',
           type: 'pie',
           radius: ['40%', '70%'],
+          center: ['50%', '50%'],
           avoidLabelOverlap: false,
           itemStyle: {
             borderRadius: 10,
@@ -184,7 +222,7 @@ const initPieChart = async () => {
     pieChart.setOption(option)
     try { pieChart.hideLoading() } catch {}
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('学院参与度接口异常', {
       message: error?.message,
       status: error?.response?.status,
@@ -208,12 +246,59 @@ const initPieChart = async () => {
   }
 }
 
+// 初始化男女比例环形图
+const initGenderPieChart = async () => {
+  if (!genderPieRef.value || !dashboardConfig.value.show_gender_ratio) return
+  const echarts = await import('echarts')
+  genderPieChart = echarts.init(genderPieRef.value)
+
+  const data = [
+    { name: '男', value: 58 },
+    { name: '女', value: 42 }
+  ]
+
+  const option = {
+    tooltip: {
+      trigger: 'item',
+      formatter: '{b}: {c} ({d}%)'
+    },
+    legend: { show: false },
+    series: [
+      {
+        name: '男女参与比例',
+        type: 'pie',
+        radius: ['40%', '70%'],
+        center: ['50%', '50%'],
+        avoidLabelOverlap: false,
+        itemStyle: {
+          borderRadius: 10,
+          borderColor: '#fff',
+          borderWidth: 2
+        },
+        label: { show: false, position: 'center' },
+        emphasis: {
+          label: {
+            show: true,
+            fontSize: 16,
+            fontWeight: 'bold'
+          }
+        },
+        labelLine: { show: false },
+        data
+      }
+    ]
+  }
+  genderPieChart.setOption(option)
+}
+
 // 初始化柱状图 (垂直方向)
 const initBarChart = async () => {
   if (!barChartRef.value) return
   
   const echarts = await import('echarts')
   barChart = echarts.init(barChartRef.value)
+  const months = participationRange.value === '3m' ? baseParticipation.months3 : baseParticipation.months6
+  const values = participationRange.value === '3m' ? baseParticipation.values3 : baseParticipation.values6
   const option = {
     tooltip: {
       trigger: 'axis',
@@ -230,7 +315,7 @@ const initBarChart = async () => {
     // 交换 X 轴和 Y 轴配置
     xAxis: {
       type: 'category',
-      data: ['7月', '8月', '9月', '10月', '11月', '12月'],
+      data: months,
       axisLabel: {
         interval: 0
       }
@@ -246,7 +331,7 @@ const initBarChart = async () => {
         name: '参与率',
         type: 'bar',
         barWidth: '40%', // 优化柱子宽度
-        data: [65, 70, 85, 88, 82, 92],
+        data: values,
         itemStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: '#6366f1' },
@@ -265,22 +350,39 @@ const initBarChart = async () => {
   barChart.setOption(option)
 }
 
+// 切换参与率时间范围
+const changeParticipationRange = async (range: '3m' | '6m') => {
+  participationRange.value = range
+  if (barChart) {
+    const months = participationRange.value === '3m' ? baseParticipation.months3 : baseParticipation.months6
+    const values = participationRange.value === '3m' ? baseParticipation.values3 : baseParticipation.values6
+    barChart.setOption({
+      xAxis: { data: months },
+      series: [{ data: values }]
+    })
+  } else {
+    await initBarChart()
+  }
+}
+
 // 窗口大小改变时重绘图表
 const handleResize = () => {
   lineChart?.resize()
   pieChart?.resize()
   barChart?.resize()
+  genderPieChart?.resize()
 }
 
 onMounted(async () => {
-  // 先加载配置
   await loadDashboardConfig()
-  // 再初始化图表
   await initLineChart()
   if (dashboardConfig.value.show_academy_rank) {
     await initPieChart()
   }
   await initBarChart()
+  if (dashboardConfig.value.show_gender_ratio) {
+    await initGenderPieChart()
+  }
   window.addEventListener('resize', handleResize)
 })
 
@@ -289,6 +391,7 @@ onUnmounted(() => {
   lineChart?.dispose()
   pieChart?.dispose()
   barChart?.dispose()
+  genderPieChart?.dispose()
 })
 </script>
 
@@ -383,20 +486,17 @@ onUnmounted(() => {
     </div>
 
     <!-- 3. 中间趋势分析区域 -->
-    <div class="grid gap-6 md:grid-cols-12 h-[400px]">
+    <div class="grid gap-6 md:grid-cols-12">
       <!-- 左侧卡片 - 根据配置调整宽度 -->
       <Card 
-        :class="[
-          'hover:shadow-lg transition-shadow duration-300 flex flex-col',
-          dashboardConfig.show_academy_rank ? 'md:col-span-7 lg:col-span-8' : 'md:col-span-12'
-        ]"
+        :class="dashboardConfig.show_academy_rank ? 'hover:shadow-lg transition-shadow duration-300 flex flex-col md:col-span-7 lg:col-span-8' : 'hover:shadow-lg transition-shadow duration-300 flex flex-col md:col-span-12'"
       >
         <CardContent class="p-6 flex-1 flex flex-col">
-          <div class="flex items-center gap-2 mb-4">
+          <div class="flex items-center gap-2 h-[28px] mb-4">
             <TrendingUp class="w-5 h-5 text-blue-600" />
             <h3 class="text-lg font-semibold text-slate-800">近半年活动趋势</h3>
           </div>
-          <div ref="lineChartRef" class="w-full flex-1 min-h-[300px]"></div>
+          <div ref="lineChartRef" class="w-full h-[300px]"></div>
         </CardContent>
       </Card>
 
@@ -406,32 +506,66 @@ onUnmounted(() => {
         class="md:col-span-5 lg:col-span-4 hover:shadow-lg transition-shadow duration-300 flex flex-col"
       >
         <CardContent class="p-6 flex-1 flex flex-col">
-          <div class="flex items-center gap-2 mb-4">
+          <div class="flex items-center gap-2 h-[28px] mb-4">
             <PieChart class="w-5 h-5 text-purple-600" />
             <h3 class="text-lg font-semibold text-slate-800">各学院参与度占比</h3>
           </div>
-          <div ref="pieChartRef" class="w-full flex-1 min-h-[300px]"></div>
+          <div class="relative w-full h-[300px]">
+            <div ref="pieChartRef" class="absolute inset-0"></div>
+          </div>
         </CardContent>
       </Card>
     </div>
 
-    <!-- 4. 底部分析卡片 -->
-    <Card class="hover:shadow-lg transition-shadow duration-300">
-      <CardContent class="p-6">
-        <div class="flex items-center justify-between mb-6">
-          <div class="flex items-center gap-2">
-            <BarChart class="w-5 h-5 text-indigo-600" />
-            <h3 class="text-lg font-semibold text-slate-800">近半年活动参与率</h3>
+    <!-- 4. 底部分析卡片：活动参与率 + 男女比例 - 使用与上面相同的列宽比例 -->
+    <div class="grid gap-6 md:grid-cols-12">
+      <!-- 活动参与率卡片 - 与"近半年活动趋势"宽度对齐 -->
+      <Card 
+        :class="dashboardConfig.show_gender_ratio ? 'hover:shadow-lg transition-shadow duration-300 md:col-span-7 lg:col-span-8' : 'hover:shadow-lg transition-shadow duration-300 md:col-span-12'"
+      >
+        <CardContent class="p-6">
+          <div class="flex items-center justify-between h-[52px] mb-4">
+            <div class="flex items-center gap-2">
+              <BarChart class="w-5 h-5 text-indigo-600" />
+              <h3 class="text-lg font-semibold text-slate-800">活动参与率</h3>
+            </div>
+            <div class="flex items-center gap-2">
+              <button
+                class="px-3 py-1 text-xs rounded border"
+                :class="participationRange === '3m' ? 'border-purple-500 text-purple-600 bg-purple-50' : 'border-slate-200 text-slate-600'"
+                @click="changeParticipationRange('3m')"
+              >
+                最近三个月
+              </button>
+              <button
+                class="px-3 py-1 text-xs rounded border"
+                :class="participationRange === '6m' ? 'border-purple-500 text-purple-600 bg-purple-50' : 'border-slate-200 text-slate-600'"
+                @click="changeParticipationRange('6m')"
+              >
+                最近六个月
+              </button>
+            </div>
           </div>
-          <!-- 简单的筛选器示例 -->
-          <select class="text-sm border-slate-200 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-            <option>最近6个月</option>
-            <option>最近12个月</option>
-          </select>
-        </div>
-        <div ref="barChartRef" class="w-full h-[300px]"></div>
-      </CardContent>
-    </Card>
+          <div ref="barChartRef" class="w-full h-[300px]"></div>
+        </CardContent>
+      </Card>
+
+      <!-- 男女参与比例卡片 - 与"各学院参与度占比"宽度对齐 -->
+      <Card
+        v-if="dashboardConfig.show_gender_ratio"
+        class="md:col-span-5 lg:col-span-4 hover:shadow-lg transition-shadow duration-300"
+      >
+        <CardContent class="p-6">
+          <div class="flex items-center gap-2 h-[28px] mb-4">
+            <PieChart class="w-5 h-5 text-indigo-500" />
+            <h3 class="text-lg font-semibold text-slate-800">男女参与比例</h3>
+          </div>
+          <div class="relative w-full h-[300px]">
+            <div ref="genderPieRef" class="absolute inset-0"></div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   </div>
 </template>
 

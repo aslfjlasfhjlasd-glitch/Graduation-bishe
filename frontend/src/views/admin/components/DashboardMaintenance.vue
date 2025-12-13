@@ -18,7 +18,8 @@ const formData = ref({
   dashboard_title: '',
   dashboard_notice: '',
   goal_total_hours: '',
-  show_academy_rank: true
+  show_academy_rank: true,
+  show_gender_ratio: true
 })
 
 // 动态预览数据
@@ -171,7 +172,7 @@ const loadConfigs = async () => {
         }
       })
       
-      showMessage('success', '配置加载成功')
+      // 配置加载成功，不显示提示消息
     } else {
       showMessage('error', response.data.message || '加载配置失败')
     }
@@ -370,6 +371,22 @@ onUnmounted(() => {
                 <input 
                   type="checkbox" 
                   v-model="formData.show_academy_rank"
+                  class="sr-only peer"
+                >
+                <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+              </label>
+            </div>
+
+            <!-- 男女参与比例开关 -->
+            <div class="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+              <div>
+                <p class="font-medium text-slate-700">显示男女参与比例</p>
+                <p class="text-sm text-slate-500 mt-1">控制男女参与比例环形图显示</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  v-model="formData.show_gender_ratio"
                   class="sr-only peer"
                 >
                 <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
