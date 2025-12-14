@@ -867,7 +867,7 @@ onUnmounted(() => {
   </div>
 
   <DialogRoot v-model:open="detailOpen">
-    <DialogOverlay class="fixed inset-0 bg-slate-900/30 backdrop-blur-[6px]" />
+    <DialogOverlay class="fixed inset-0 bg-slate-900/30 backdrop-blur-[6px] z-40" />
     <DialogContent class="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-lg max-h-[85vh] bg-white/80 backdrop-blur-xl border border-white/40 rounded-xl shadow-2xl p-0 z-50 flex flex-col">
       <div class="h-1.5 w-full bg-gradient-to-r from-blue-600 via-cyan-500 to-emerald-500 rounded-t-xl flex-shrink-0"></div>
       <div class="p-5 flex items-center gap-3 flex-shrink-0">
@@ -912,7 +912,7 @@ onUnmounted(() => {
           </div>
           <div class="flex items-start gap-2 bg-white/70 border border-slate-200 rounded-lg p-2.5">
             <ShieldCheck class="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
-            <div class="text-sm text-slate-700"><span class="font-medium">活动需求条件：</span>{{ detail.hdxq }}</div>
+            <div class="text-sm text-slate-700"><span class="font-medium">活动需求条件：</span>{{ detail.hdxq || '无' }}</div>
           </div>
           <div class="flex items-start gap-2 bg-white/70 border border-slate-200 rounded-lg p-2.5">
             <ShieldCheck class="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
@@ -920,7 +920,7 @@ onUnmounted(() => {
           </div>
           <div class="flex items-start gap-2 bg-white/70 border border-slate-200 rounded-lg p-2.5">
             <Star class="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-            <div class="text-sm text-slate-700"><span class="font-medium">可获得学分：</span>{{ detail.hdxf || '0' }} 学分</div>
+            <div class="text-sm text-slate-700"><span class="font-medium">可获得学分：</span>{{ detail.hdXf || '0' }} 学分</div>
           </div>
           <div class="flex items-start gap-2 bg-white/70 border border-slate-200 rounded-lg p-2.5">
             <Building2 class="w-4 h-4 text-slate-700 flex-shrink-0 mt-0.5" />

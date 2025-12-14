@@ -43,16 +43,18 @@
 
     <!-- 分页查询学生列表（管理员用） -->
     <select id="findStudentsByPage" resultType="com.university.volunteer.entity.Student">
-        SELECT 
+        SELECT
             XS_XH as xsXh,
             XS_XM as xsXm,
             XS_DH as xsDh,
+            XS_XB as xsXb,
+            ZZMM as zzmm,
             SS_XY as ssXy,
             BJ_MC as bjMc
         FROM t_xs
         <where>
             <if test="keyword != null and keyword != ''">
-                AND (XS_XM LIKE CONCAT('%', #{keyword}, '%') 
+                AND (XS_XM LIKE CONCAT('%', #{keyword}, '%')
                 OR XS_XH LIKE CONCAT('%', #{keyword}, '%'))
             </if>
         </where>
@@ -66,8 +68,8 @@
 
     <!-- 插入新学生 -->
     <insert id="insertStudent" parameterType="com.university.volunteer.entity.Student">
-        INSERT INTO t_xs (XS_XH, XS_XM, XS_MM, XS_DH, SS_XY)
-        VALUES (#{xsXh}, #{xsXm}, #{xsMm}, #{xsDh}, #{ssXy})
+        INSERT INTO t_xs (XS_XH, XS_XM, XS_MM, XS_DH, XS_XB, ZZMM, SS_XY, BJ_MC)
+        VALUES (#{xsXh}, #{xsXm}, #{xsMm}, #{xsDh}, #{xsXb}, #{zzmm}, #{ssXy}, #{bjMc})
     </insert>
 
     <!-- 更新学生信息（学生权限） -->
@@ -89,7 +91,10 @@
         <set>
             <if test="xsXm != null">XS_XM = #{xsXm},</if>
             <if test="xsDh != null">XS_DH = #{xsDh},</if>
+            <if test="xsXb != null">XS_XB = #{xsXb},</if>
+            <if test="zzmm != null">ZZMM = #{zzmm},</if>
             <if test="ssXy != null">SS_XY = #{ssXy},</if>
+            <if test="bjMc != null">BJ_MC = #{bjMc},</if>
             <if test="xsMm != null">XS_MM = #{xsMm},</if>
         </set>
         WHERE XS_XH = #{xsXh}

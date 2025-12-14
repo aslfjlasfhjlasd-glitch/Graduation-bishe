@@ -113,11 +113,16 @@ const loadStudentInfo = async () => {
   loading.value = true
   try {
     // 从localStorage获取学号（登录时应该存储）
-    const studentId = localStorage.getItem('studentId') || 2024104
+    const studentIdStr = localStorage.getItem('studentId')
+    const studentId = studentIdStr ? parseInt(studentIdStr) : 2024104
+    
+    console.log('正在加载学生信息，学号:', studentId)
     
     const response = await axios.get(`${API_BASE}/api/student/profile`, {
       params: { studentId }
     })
+    
+    console.log('API响应:', response.data)
     
     if (response.data.code === 200) {
       studentInfo.value = response.data.data
@@ -134,6 +139,7 @@ const loadStudentInfo = async () => {
     }
   } catch (error) {
     console.error('加载学生信息失败', error)
+    console.error('错误详情:', error.response?.data)
     showToast('error', '加载学生信息失败，请稍后重试')
   } finally {
     loading.value = false
@@ -505,6 +511,7 @@ onMounted(async () => {
                 v-model="passwordForm.oldPassword"
                 type="password"
                 placeholder="请输入原密码"
+                autocomplete="current-password"
                 class="h-10"
               />
             </div>
@@ -516,6 +523,7 @@ onMounted(async () => {
                 v-model="passwordForm.newPassword"
                 type="password"
                 placeholder="至少6位"
+                autocomplete="new-password"
                 class="h-10"
               />
             </div>
@@ -527,6 +535,7 @@ onMounted(async () => {
                 v-model="passwordForm.confirmPassword"
                 type="password"
                 placeholder="再次输入"
+                autocomplete="new-password"
                 class="h-10"
               />
             </div>
