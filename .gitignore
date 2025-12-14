@@ -4,3 +4,10 @@ frontend/node_modules/
 frontend/dist/
 frontend/.env.development
 frontend/.env.production
+# 忽略所有 .jpg 和 .png 文件
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.svg
+*.bmp
