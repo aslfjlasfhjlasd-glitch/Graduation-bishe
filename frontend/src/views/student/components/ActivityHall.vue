@@ -38,7 +38,8 @@ const toastDesc = ref('')
 // 推荐相关状态
 const recommendedActivities = ref([])
 const recommendLoading = ref(false)
-const showRecommendations = ref(true)
+const showRecommendations = ref(false) // 🔥 改为 false，不自动显示
+const showAllRecommendations = ref(false) // 新增：控制是否展开所有推荐
 
 const loadActivities = async () => {
   listLoading.value = true
@@ -59,6 +60,8 @@ const loadActivities = async () => {
         bmjssj: r.bmjssj || null,
         hdkssj: r.hdkssj || null,
         hdjssj: r.hdjssj || null,
+        // 【新增】活动类型字段
+        hdbq: r.hdbq || r.hdBq || r.HD_BQ || '其他',
         icon: pickIcon(r.hdmc)
       }))
       updateStatuses()
@@ -72,20 +75,35 @@ const loadActivities = async () => {
   }
 }
 
-// 加载推荐活动
-const loadRecommendations = async () => {
+// 🔥 修改：手动触发推荐加载
+const handleSmartRecommendClick = async () => {
+  // 如果已经加载过推荐，直接显示
+  if (recommendedActivities.value.length > 0) {
+    showRecommendations.value = true
+    showAllRecommendations.value = false
+    return
+  }
+
+  // 开始加载推荐
   recommendLoading.value = true
   try {
     const studentId = localStorage.getItem('studentId')
     if (!studentId) {
-      console.warn('未找到学生ID，跳过推荐加载')
+      showToast('error', '推荐失败', '未找到学生信息，请重新登录')
       return
     }
     
     const res = await getRecommendedActivities(parseInt(studentId))
     if (res.data && res.data.code === 200) {
       const recommendations = res.data.data || []
-      // 转换推荐数据格式以匹配活动卡片
+      
+      // 如果没有推荐结果
+      if (recommendations.length === 0) {
+        showToast('info', '暂无推荐', '暂时没有适合您的活动推荐，快去多参与几个活动吧！')
+        return
+      }
+      
+      // 转换推荐数据格式
       recommendedActivities.value = recommendations.map(item => ({
         id: item.activity.hdBh,
         hdmc: item.activity.hdMc,
@@ -98,8 +116,8 @@ const loadRecommendations = async () => {
         bmjssj: item.activity.bmJssj,
         hdkssj: item.activity.hdKssj,
         hdjssj: item.activity.hdJssj,
+        hdbq: item.activity.hdBq || '其他',
         icon: pickIcon(item.activity.hdMc),
-        // 推荐相关信息
         matchScore: item.matchScore || 0,
         matchedTags: item.matchedTags || [],
         activityTags: item.activityTags || [],
@@ -112,11 +130,18 @@ const loadRecommendations = async () => {
         status: computeStatus(a)
       }))
       
+      // 显示推荐区域
+      showRecommendations.value = true
+      showAllRecommendations.value = false
+      
+      showToast('success', '推荐成功', `为您找到 ${recommendedActivities.value.length} 个推荐活动`)
       console.log('✨ 推荐活动加载成功:', recommendedActivities.value.length, '个')
+    } else {
+      showToast('error', '推荐失败', res.data?.message || '获取推荐失败')
     }
   } catch (e) {
     console.error('❌ 加载推荐失败:', e)
-    recommendedActivities.value = []
+    showToast('error', '推荐失败', '推荐服务暂时不可用，请稍后再试')
   } finally {
     recommendLoading.value = false
   }
@@ -387,7 +412,7 @@ const toggleFilters = () => {
 let statusTimer = null
 onMounted(async () => {
   await loadActivities()
-  await loadRecommendations() // 加载推荐活动
+  // 🔥 移除自动加载推荐
   statusTimer = setInterval(updateStatuses, 60000)
 })
 onUnmounted(() => {
@@ -437,7 +462,7 @@ onUnmounted(() => {
       <!-- 推荐活动卡片 -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         <Card
-          v-for="item in recommendedActivities.slice(0, 6)"
+          v-for="item in (showAllRecommendations ? recommendedActivities : recommendedActivities.slice(0, 6))"
           :key="item.id"
           class="group relative bg-gradient-to-br from-white to-slate-50/50 border-2 hover:shadow-2xl rounded-2xl transition-all duration-300 hover:scale-[1.03] overflow-hidden"
           :class="item.recommendType === 'CONTENT_BASED' ? 'border-amber-200 hover:border-amber-400' : 'border-blue-200 hover:border-blue-400'"
@@ -465,7 +490,20 @@ onUnmounted(() => {
               <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-tr from-blue-600 via-cyan-500 to-emerald-500 text-white shadow-lg">
                 <component :is="icons[item.icon]" class="w-5 h-5" />
               </span>
-              <CardTitle class="text-slate-900 text-base font-bold line-clamp-2">{{ item.hdmc }}</CardTitle>
+              <div class="flex-1 min-w-0">
+                <CardTitle class="text-slate-900 text-base font-bold line-clamp-2">{{ item.hdmc }}</CardTitle>
+                <!-- 【新增】活动类型标签 -->
+                <div v-if="item.hdbq" class="flex flex-wrap gap-1.5 mt-1.5">
+                  <Badge
+                    v-for="tag in item.hdbq.split(',')"
+                    :key="tag"
+                    variant="outline"
+                    class="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 border-blue-200"
+                  >
+                    {{ tag.trim() }}
+                  </Badge>
+                </div>
+              </div>
             </div>
           </CardHeader>
 
@@ -544,10 +582,25 @@ onUnmounted(() => {
       </div>
 
       <!-- 查看更多推荐 -->
-      <div v-if="recommendedActivities.length > 6" class="mt-4 text-center">
-        <Button variant="outline" class="gap-2">
+      <div v-if="recommendedActivities.length > 6 && !showAllRecommendations" class="mt-4 text-center">
+        <Button
+          variant="outline"
+          class="gap-2"
+          @click="showAllRecommendations = true"
+        >
           <Sparkles class="w-4 h-4" />
           查看更多推荐 ({{ recommendedActivities.length - 6 }}+)
+        </Button>
+      </div>
+
+      <!-- 收起推荐 -->
+      <div v-if="showAllRecommendations && recommendedActivities.length > 6" class="mt-4 text-center">
+        <Button
+          variant="ghost"
+          class="gap-2 text-slate-500"
+          @click="showAllRecommendations = false"
+        >
+          收起推荐
         </Button>
       </div>
 
@@ -576,6 +629,17 @@ onUnmounted(() => {
               <X class="w-5 h-5" />
             </button>
           </div>
+          
+          <!-- 🔥 新增：智能推荐按钮 -->
+          <Button
+            @click="handleSmartRecommendClick"
+            :disabled="recommendLoading"
+            class="flex items-center gap-2 px-4 py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Sparkles class="w-5 h-5" :class="{ 'animate-spin': recommendLoading }" />
+            <span class="hidden sm:inline">{{ recommendLoading ? '加载中...' : '智能推荐' }}</span>
+          </Button>
+          
           <Button
             @click="toggleFilters"
             variant="outline"
@@ -669,7 +733,20 @@ onUnmounted(() => {
           <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-tr from-blue-600 via-cyan-500 to-emerald-500 text-white shadow">
             <component :is="icons[item.icon]" class="w-5 h-5" />
           </span>
-          <CardTitle class="text-slate-900 text-lg">{{ item.hdmc }}</CardTitle>
+          <div class="flex-1 min-w-0">
+            <CardTitle class="text-slate-900 text-lg">{{ item.hdmc }}</CardTitle>
+            <!-- 【新增】活动类型标签 -->
+            <div v-if="item.hdbq" class="flex flex-wrap gap-1.5 mt-1.5">
+              <Badge
+                v-for="tag in item.hdbq.split(',')"
+                :key="tag"
+                variant="outline"
+                class="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 border-blue-200"
+              >
+                {{ tag.trim() }}
+              </Badge>
+            </div>
+          </div>
         </div>
       </CardHeader>
       <CardContent class="space-y-4 px-6 pb-20">
@@ -763,6 +840,23 @@ onUnmounted(() => {
           <div class="flex items-start gap-2 bg-white/70 border border-slate-200 rounded-lg p-2.5">
             <Building2 class="w-4 h-4 text-slate-700 flex-shrink-0 mt-0.5" />
             <div class="text-sm text-slate-700"><span class="font-medium">发起单位：</span>{{ detail.hdfqdw }}</div>
+          </div>
+          <!-- 【新增】活动类型显示 -->
+          <div v-if="detail.hdbq" class="flex items-start gap-2 bg-white/70 border border-slate-200 rounded-lg p-2.5">
+            <Sparkles class="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
+            <div class="text-sm text-slate-700">
+              <span class="font-medium">活动类型：</span>
+              <span class="inline-flex flex-wrap gap-1.5 ml-1">
+                <Badge
+                  v-for="tag in detail.hdbq.split(',')"
+                  :key="tag"
+                  variant="secondary"
+                  class="text-xs px-2 py-0.5"
+                >
+                  {{ tag.trim() }}
+                </Badge>
+              </span>
+            </div>
           </div>
           <div class="flex items-start gap-2 bg-white/70 border border-slate-200 rounded-lg p-2.5">
             <component :is="statusIconMap[detail.computedStatus]" class="w-4 h-4 flex-shrink-0 mt-0.5" :class="detail.computedStatus === '活动报名中' ? 'text-green-600' : detail.computedStatus === '活动进行中' ? 'text-emerald-600' : detail.computedStatus === '活动已结束' ? 'text-slate-600' : 'text-slate-700'" />

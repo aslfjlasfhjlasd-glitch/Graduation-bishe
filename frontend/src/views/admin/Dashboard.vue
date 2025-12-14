@@ -243,22 +243,26 @@ const handleLogout = () => {
 
       <!-- 内容区域 (Main Content) -->
       <main class="flex-1 overflow-auto p-8">
-        <div class="max-w-7xl mx-auto space-y-8">
+  <div class="max-w-7xl mx-auto space-y-8">
+    
+    <Transition name="fade" mode="out-in">
+      <div v-if="activeMenu === 'dashboard'">
+        <DashboardHome />
+      </div>
+      <ActivityDesign v-else-if="activeMenu === 'activity-design'" :force-admin="true" />
+      <ActivityManagement v-else-if="activeMenu === 'activity-management'" />
+      <VolunteerReview v-else-if="activeMenu === 'activity-review'" />
+      <DashboardMaintenance v-else-if="activeMenu === 'dashboard-maintenance'" />
+      <AccountManagement v-else-if="activeMenu === 'account-management'" />
+      <div v-else class="grid gap-6">
+        <Card class="bg-white border-slate-100 shadow-sm min-h-[300px]">
+          <CardContent class="p-12 text-slate-400 text-center">模块建设中</CardContent>
+        </Card>
+      </div>
+    </Transition>
 
-          <DashboardHome v-if="activeMenu === 'dashboard'" />
-          <ActivityDesign v-else-if="activeMenu === 'activity-design'" :force-admin="true" />
-          <ActivityManagement v-else-if="activeMenu === 'activity-management'" />
-          <VolunteerReview v-else-if="activeMenu === 'activity-review'" />
-          <DashboardMaintenance v-else-if="activeMenu === 'dashboard-maintenance'" />
-          <AccountManagement v-else-if="activeMenu === 'account-management'" />
-          <div v-else class="grid gap-6">
-            <Card class="bg-white border-slate-100 shadow-sm min-h-[300px]">
-              <CardContent class="p-12 text-slate-400 text-center">模块建设中</CardContent>
-            </Card>
-          </div>
-
-        </div>
-      </main>
+  </div>
+</main>
     </div>
   </div>
 </template>

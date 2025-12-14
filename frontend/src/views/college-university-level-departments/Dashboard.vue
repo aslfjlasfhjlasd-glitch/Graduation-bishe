@@ -199,22 +199,28 @@ const handleLogout = () => {
       </header>
 
       <main class="flex-1 overflow-auto p-8">
-        <div class="max-w-7xl mx-auto space-y-8">
-          <DashboardHome v-if="activeMenu === 'dashboard'" />
-          <ActivityDesign v-else-if="activeMenu === 'activity-design'" />
-          <LeavePermit v-else-if="activeMenu === 'volunteer-leave'" />
-          <AttendanceManagement v-else-if="activeMenu === 'volunteer-attendance'" />
-          <WorkHoursConfirm v-else-if="activeMenu === 'volunteer-workhours'" />
-          <VolunteerEvaluation v-else-if="activeMenu === 'evaluation-volunteer'" />
-          <CertificateExport v-else-if="activeMenu === 'evaluation-certificate'" />
-          <InfoMaintenance v-else-if="activeMenu === 'info-maintenance'" />
-          <div v-else class="grid gap-6">
-            <Card class="bg-white border-slate-100 shadow-sm min-h-[300px]">
-              <CardContent class="p-12 text-slate-400 text-center">模块建设中</CardContent>
-            </Card>
-          </div>
-        </div>
-      </main>
+  <div class="max-w-7xl mx-auto space-y-8">
+    
+    <Transition name="fade" mode="out-in">
+      <div v-if="activeMenu === 'dashboard'">
+        <DashboardHome />
+      </div>
+      <ActivityDesign v-else-if="activeMenu === 'activity-design'" />
+      <LeavePermit v-else-if="activeMenu === 'volunteer-leave'" />
+      <AttendanceManagement v-else-if="activeMenu === 'volunteer-attendance'" />
+      <WorkHoursConfirm v-else-if="activeMenu === 'volunteer-workhours'" />
+      <VolunteerEvaluation v-else-if="activeMenu === 'evaluation-volunteer'" />
+      <CertificateExport v-else-if="activeMenu === 'evaluation-certificate'" />
+      <InfoMaintenance v-else-if="activeMenu === 'info-maintenance'" />
+      <div v-else class="grid gap-6">
+        <Card class="bg-white border-slate-100 shadow-sm min-h-[300px]">
+          <CardContent class="p-12 text-slate-400 text-center">模块建设中</CardContent>
+        </Card>
+      </div>
+    </Transition>
+
+  </div>
+</main>
     </div>
   </div>
 </template>

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, defineAsyncComponent, onMounted } from 'vue'
+import { ref, defineAsyncComponent, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   LayoutDashboard,
@@ -29,6 +29,7 @@ const router = useRouter()
 // 状态管理
 const isActivitiesOpen = ref(false) // 活动全流程菜单展开状态
 const activeMenu = ref('dashboard') // 当前激活的菜单项
+const isTransitioning = ref(false) // 过渡状态标记
 
 // 从localStorage获取用户信息
 const studentName = ref(localStorage.getItem('studentName') || '学生')
@@ -50,10 +51,44 @@ const toggleActivities = () => {
   isActivitiesOpen.value = !isActivitiesOpen.value
 }
 
-// 菜单点击处理
+// 防抖定时器
+let debounceTimer = null
+
+// 菜单点击处理（添加防抖）
 const handleMenuClick = (menuKey) => {
+  // 如果正在过渡中，忽略点击
+  if (isTransitioning.value) {
+    return
+  }
+  
+  // 如果点击的是当前菜单，不做任何操作
+  if (activeMenu.value === menuKey) {
+    return
+  }
+  
+  // 清除之前的定时器
+  if (debounceTimer) {
+    clearTimeout(debounceTimer)
+  }
+  
+  // 设置过渡状态
+  isTransitioning.value = true
+  
+  // 立即更新菜单
   activeMenu.value = menuKey
+  
+  // 300ms 后解除过渡锁定（与 CSS 过渡时间一致）
+  debounceTimer = setTimeout(() => {
+    isTransitioning.value = false
+  }, 300)
 }
+
+// 清理定时器
+onUnmounted(() => {
+  if (debounceTimer) {
+    clearTimeout(debounceTimer)
+  }
+})
 
 // 退出登录
 const handleLogout = () => {
@@ -255,23 +290,48 @@ const handleLogout = () => {
 
       <!-- 内容区域 (Main Content) -->
       <main class="flex-1 overflow-auto p-8">
-        <div class="max-w-7xl mx-auto space-y-8">
+  <div class="max-w-7xl mx-auto space-y-8">
 
-          <DashboardHome v-if="activeMenu === 'dashboard'" />
-          <ActivityHall v-else-if="activeMenu === 'hall'" />
-          <RegistrationStatus v-else-if="activeMenu === 'activity-status'" />
-          <ActivityPerformance v-else-if="activeMenu === 'activity-performance'" />
-          <LeaveDownload v-else-if="activeMenu === 'activity-leave'" />
-          <CertificateDownload v-else-if="activeMenu === 'activity-certificate'" />
-          <Profile v-else-if="activeMenu === 'profile'" />
-          <div v-else class="grid gap-6">
-            <Card class="bg-white border-slate-100 shadow-sm min-h-[300px]">
-              <CardContent class="p-12 text-slate-400 text-center">模块建设中</CardContent>
-            </Card>
-          </div>
-
+    <KeepAlive>
+      <Transition name="fade" mode="out-in">
+        <div v-if="activeMenu === 'dashboard'" key="dashboard">
+          <DashboardHome />
         </div>
-      </main>
+        
+        <div v-else-if="activeMenu === 'hall'" key="hall">
+          <ActivityHall />
+        </div>
+        
+        <div v-else-if="activeMenu === 'activity-status'" key="status">
+          <RegistrationStatus />
+        </div>
+        
+        <div v-else-if="activeMenu === 'activity-performance'" key="performance">
+          <ActivityPerformance />
+        </div>
+        
+        <div v-else-if="activeMenu === 'activity-leave'" key="leave">
+          <LeaveDownload />
+        </div>
+        
+        <div v-else-if="activeMenu === 'activity-certificate'" key="certificate">
+          <CertificateDownload />
+        </div>
+        
+        <div v-else-if="activeMenu === 'profile'" key="profile">
+          <Profile />
+        </div>
+        
+        <div v-else key="empty" class="grid gap-6">
+          <Card class="bg-white border-slate-100 shadow-sm min-h-[300px]">
+            <CardContent class="p-12 text-slate-400 text-center">模块建设中</CardContent>
+          </Card>
+        </div>
+      </Transition>
+    </KeepAlive>
+
+  </div>
+</main>
     </div>
   </div>
 </template>

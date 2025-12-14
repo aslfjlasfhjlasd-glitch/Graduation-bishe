@@ -129,6 +129,11 @@ const loadDashboardConfig = async () => {
 const initLineChart = async () => {
   if (!lineChartRef.value) return
   
+  // 如果已存在实例,先销毁
+  if (lineChart && !lineChart.isDisposed()) {
+    lineChart.dispose()
+  }
+  
   const echarts = await import('echarts')
   lineChart = echarts.init(lineChartRef.value)
   const option = {
@@ -189,6 +194,11 @@ const initLineChart = async () => {
 const initPieChart = async () => {
   if (!pieChartRef.value) return
   
+  // 如果已存在实例,先销毁
+  if (pieChart && !pieChart.isDisposed()) {
+    pieChart.dispose()
+  }
+  
   const echarts = await import('echarts')
   pieChart = echarts.init(pieChartRef.value)
   
@@ -236,6 +246,12 @@ const initPieChart = async () => {
 // 初始化男女比例环形图（空图表）
 const initGenderPieChart = async () => {
   if (!genderPieRef.value || !dashboardConfig.value.show_gender_ratio) return
+  
+  // 如果已存在实例,先销毁
+  if (genderPieChart && !genderPieChart.isDisposed()) {
+    genderPieChart.dispose()
+  }
+  
   const echarts = await import('echarts')
   genderPieChart = echarts.init(genderPieRef.value)
 
@@ -276,6 +292,11 @@ const initGenderPieChart = async () => {
 // 初始化柱状图（空图表）
 const initBarChart = async () => {
   if (!barChartRef.value) return
+  
+  // 如果已存在实例,先销毁
+  if (barChart && !barChart.isDisposed()) {
+    barChart.dispose()
+  }
   
   const echarts = await import('echarts')
   barChart = echarts.init(barChartRef.value)
@@ -613,10 +634,43 @@ onMounted(async () => {
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
   stopLiveUpdate()
-  lineChart?.dispose()
-  pieChart?.dispose()
-  barChart?.dispose()
-  genderPieChart?.dispose()
+  
+  // 安全地销毁图表实例
+  try {
+    if (lineChart && !lineChart.isDisposed()) {
+      lineChart.dispose()
+      lineChart = null
+    }
+  } catch (e) {
+    console.warn('销毁折线图失败:', e)
+  }
+  
+  try {
+    if (pieChart && !pieChart.isDisposed()) {
+      pieChart.dispose()
+      pieChart = null
+    }
+  } catch (e) {
+    console.warn('销毁饼图失败:', e)
+  }
+  
+  try {
+    if (barChart && !barChart.isDisposed()) {
+      barChart.dispose()
+      barChart = null
+    }
+  } catch (e) {
+    console.warn('销毁柱状图失败:', e)
+  }
+  
+  try {
+    if (genderPieChart && !genderPieChart.isDisposed()) {
+      genderPieChart.dispose()
+      genderPieChart = null
+    }
+  } catch (e) {
+    console.warn('销毁性别比例图失败:', e)
+  }
 })
 
 // 暴露方法供外部调用（可选）
@@ -815,7 +869,7 @@ defineExpose({
 /* 跑马灯动画 */
 @keyframes marquee {
   0% {
-    transform: translateX(100%);
+    transform: translateX(0);
   }
   100% {
     transform: translateX(-100%);
@@ -823,6 +877,8 @@ defineExpose({
 }
 
 .animate-marquee {
+  display: inline-block;
+  padding-left: 100%;
   animation: marquee 20s linear infinite;
 }
 
