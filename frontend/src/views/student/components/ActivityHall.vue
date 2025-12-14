@@ -460,124 +460,136 @@ onUnmounted(() => {
       </div>
 
       <!-- 推荐活动卡片 -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card
           v-for="item in (showAllRecommendations ? recommendedActivities : recommendedActivities.slice(0, 6))"
           :key="item.id"
-          class="group relative bg-gradient-to-br from-white to-slate-50/50 border-2 hover:shadow-2xl rounded-2xl transition-all duration-300 hover:scale-[1.03] overflow-hidden"
-          :class="item.recommendType === 'CONTENT_BASED' ? 'border-amber-200 hover:border-amber-400' : 'border-blue-200 hover:border-blue-400'"
+          class="group relative bg-white border border-slate-200 shadow-sm hover:shadow-xl rounded-2xl transition-all duration-300 hover:scale-[1.02] overflow-hidden"
         >
-          <!-- 推荐标签角标 -->
-          <div class="absolute top-0 right-0 z-10">
-            <div
-              v-if="item.recommendType === 'CONTENT_BASED'"
-              class="bg-gradient-to-br from-amber-500 to-orange-500 text-white text-xs font-bold px-3 py-1.5 rounded-bl-xl rounded-tr-xl shadow-lg flex items-center gap-1"
-            >
-              <Star class="w-3 h-3 fill-current" />
-              匹配度 {{ item.matchScore }}分
+          <!-- 顶部图片区域 -->
+          <div class="relative h-48 bg-gradient-to-br from-slate-100 to-slate-200 overflow-hidden">
+            <!-- 背景装饰 -->
+            <div class="absolute inset-0 opacity-10">
+              <component :is="icons[item.icon]" class="w-32 h-32 absolute -right-8 -top-8 text-slate-400" />
             </div>
-            <div
-              v-else
-              class="bg-gradient-to-br from-blue-500 to-cyan-500 text-white text-xs font-bold px-3 py-1.5 rounded-bl-xl rounded-tr-xl shadow-lg flex items-center gap-1"
-            >
-              <TrendingUp class="w-3 h-3" />
-              热门推荐
+            
+            <!-- 右上角状态标签 -->
+            <div class="absolute top-3 right-3">
+              <span
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold shadow-lg"
+                :class="item.status === '活动报名中' ? 'bg-emerald-500 text-white' : item.status === '报名未开始' ? 'bg-amber-500 text-white' : 'bg-slate-400 text-white'"
+              >
+                <component :is="statusIconMap[item.status]" class="w-3 h-3" />
+                {{ item.status }}
+              </span>
+            </div>
+            
+            <!-- 右下角人数角标 -->
+            <div class="absolute bottom-3 right-3 bg-slate-800/80 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-sm font-semibold">
+              {{ item.ybmrs }}/{{ item.zyrs }}
+            </div>
+            
+            <!-- 左上角推荐类型标签 -->
+            <div class="absolute top-3 left-3">
+              <span
+                v-if="item.recommendType === 'CONTENT_BASED'"
+                class="inline-flex items-center gap-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold px-3 py-1.5 rounded-md shadow-lg"
+              >
+                <Star class="w-3 h-3 fill-current" />
+                匹配 {{ item.matchScore }}分
+              </span>
+              <span
+                v-else
+                class="inline-flex items-center gap-1 bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs font-bold px-3 py-1.5 rounded-md shadow-lg"
+              >
+                <TrendingUp class="w-3 h-3" />
+                热门推荐
+              </span>
             </div>
           </div>
 
-          <CardHeader class="pb-3 px-5 pt-5">
-            <div class="flex items-center gap-3">
-              <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-tr from-blue-600 via-cyan-500 to-emerald-500 text-white shadow-lg">
-                <component :is="icons[item.icon]" class="w-5 h-5" />
-              </span>
-              <div class="flex-1 min-w-0">
-                <CardTitle class="text-slate-900 text-base font-bold line-clamp-2">{{ item.hdmc }}</CardTitle>
-                <!-- 【新增】活动类型标签 -->
-                <div v-if="item.hdbq" class="flex flex-wrap gap-1.5 mt-1.5">
-                  <Badge
-                    v-for="tag in item.hdbq.split(',')"
-                    :key="tag"
-                    variant="outline"
-                    class="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 border-blue-200"
-                  >
-                    {{ tag.trim() }}
-                  </Badge>
-                </div>
-              </div>
-            </div>
-          </CardHeader>
-
-          <CardContent class="space-y-3 px-5 pb-20">
-            <!-- 匹配标签高亮显示 -->
-            <div v-if="item.matchedTags && item.matchedTags.length > 0" class="flex flex-wrap gap-1.5">
+          <!-- 卡片内容区域 -->
+          <div class="p-5">
+            <!-- 活动类型标签 -->
+            <div v-if="item.hdbq" class="flex flex-wrap gap-2 mb-3">
               <span
-                v-for="tag in item.matchedTags.slice(0, 4)"
+                v-for="tag in item.hdbq.split(',')"
                 :key="tag"
-                class="inline-flex items-center gap-1 text-xs font-semibold bg-gradient-to-r from-red-100 to-rose-100 text-red-700 px-2.5 py-1 rounded-full border border-red-200 shadow-sm"
+                class="inline-flex items-center text-xs font-medium text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md"
+              >
+                #{{ tag.trim() }}
+              </span>
+            </div>
+
+            <!-- 匹配标签（如果有） -->
+            <div v-if="item.matchedTags && item.matchedTags.length > 0" class="flex flex-wrap gap-1.5 mb-3">
+              <span
+                v-for="tag in item.matchedTags.slice(0, 3)"
+                :key="tag"
+                class="inline-flex items-center gap-1 text-xs font-medium bg-gradient-to-r from-red-50 to-rose-50 text-red-600 px-2.5 py-1 rounded-md border border-red-200"
               >
                 <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
                 {{ tag }}
               </span>
               <span
-                v-if="item.matchedTags.length > 4"
+                v-if="item.matchedTags.length > 3"
                 class="inline-flex items-center text-xs text-slate-500 px-2 py-1"
               >
-                +{{ item.matchedTags.length - 4 }}
+                +{{ item.matchedTags.length - 3 }}
               </span>
             </div>
 
+            <!-- 活动标题 -->
+            <h3 class="text-lg font-bold text-slate-900 mb-2 line-clamp-2">
+              {{ item.hdmc }}
+            </h3>
+
+            <!-- 活动描述 -->
+            <p class="text-sm text-slate-600 mb-4 line-clamp-2">
+              {{ item.hddd }}
+            </p>
+
             <!-- 活动信息 -->
-            <div class="text-sm text-slate-700 space-y-2">
-              <div class="flex items-center gap-2">
-                <Calendar class="w-4 h-4 text-blue-600 flex-shrink-0" />
-                <span class="line-clamp-1">{{ item.hdsj }}</span>
+            <div class="space-y-2.5 mb-4">
+              <div class="flex items-center gap-2 text-sm text-slate-600">
+                <Clock class="w-4 h-4 text-slate-400 flex-shrink-0" />
+                <span>{{ item.bmsj }}</span>
               </div>
-              <div class="flex items-center gap-2">
-                <MapPin class="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              <div class="flex items-center gap-2 text-sm text-slate-600">
+                <MapPin class="w-4 h-4 text-slate-400 flex-shrink-0" />
                 <span class="line-clamp-1">{{ item.hddd }}</span>
               </div>
-              <div class="flex items-center gap-2">
-                <Users class="w-4 h-4 text-cyan-600 flex-shrink-0" />
-                <span>
-                  <span class="font-semibold text-cyan-700">{{ item.ybmrs }}</span>
-                  <span class="text-slate-500 mx-1">/</span>
-                  <span>{{ item.zyrs }}</span>
-                </span>
+              <div class="flex items-center gap-2 text-sm text-slate-600">
+                <Users class="w-4 h-4 text-slate-400 flex-shrink-0" />
+                <span>{{ item.ybmrs }} / {{ item.zyrs }} 已报名</span>
               </div>
             </div>
-          </CardContent>
 
-          <!-- 操作按钮 -->
-          <div class="absolute bottom-4 left-4 flex items-center gap-2">
-            <Button
-              variant="default"
-              size="sm"
-              class="gap-1.5 shadow-md"
-              @click="openDetail(item.id)"
-            >
-              <Info class="w-3.5 h-3.5" />
-              查看详情
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              class="shadow-md"
-              @click="registerActivity(item)"
-            >
-              立即报名
-            </Button>
+            <!-- 底部操作区 -->
+            <div class="flex items-center justify-between pt-4 border-t border-slate-100">
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                  <component :is="icons[item.icon]" class="w-4 h-4 text-white" />
+                </div>
+                <span class="text-xs text-slate-500">志愿者协会</span>
+              </div>
+              <Button
+                @click="registerActivity(item)"
+                class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-md hover:shadow-lg transition-all"
+              >
+                立即报名
+              </Button>
+            </div>
           </div>
 
-          <!-- 状态标签 -->
-          <div class="absolute bottom-4 right-4">
-            <span
-              class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium shadow-sm"
-              :class="statusClassMap[item.status]"
-            >
-              <component :is="statusIconMap[item.status]" class="w-3.5 h-3.5" />
-              {{ item.status }}
-            </span>
-          </div>
+          <!-- 查看详情悬浮按钮 -->
+          <button
+            @click="openDetail(item.id)"
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/95 backdrop-blur-sm text-slate-900 px-6 py-3 rounded-xl shadow-2xl font-medium flex items-center gap-2 z-10"
+          >
+            <Info class="w-4 h-4" />
+            查看详情
+          </button>
         </Card>
       </div>
 
@@ -727,61 +739,96 @@ onUnmounted(() => {
     </div>
 
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    <Card v-for="item in filteredActivities" :key="item.id" class="group relative bg-white border border-slate-200/70 shadow-sm hover:shadow-lg rounded-2xl transition-all duration-300 hover:scale-[1.02] ring-1 ring-white/40 min-h-[260px] md:min-h-[300px]">
-      <CardHeader class="pb-3 px-6 pt-5">
-        <div class="flex items-center gap-3">
-          <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-tr from-blue-600 via-cyan-500 to-emerald-500 text-white shadow">
-            <component :is="icons[item.icon]" class="w-5 h-5" />
-          </span>
-          <div class="flex-1 min-w-0">
-            <CardTitle class="text-slate-900 text-lg">{{ item.hdmc }}</CardTitle>
-            <!-- 【新增】活动类型标签 -->
-            <div v-if="item.hdbq" class="flex flex-wrap gap-1.5 mt-1.5">
-              <Badge
-                v-for="tag in item.hdbq.split(',')"
-                :key="tag"
-                variant="outline"
-                class="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 border-blue-200"
-              >
-                {{ tag.trim() }}
-              </Badge>
-            </div>
+      <Card v-for="item in filteredActivities" :key="item.id" class="group relative bg-white border border-slate-200 shadow-sm hover:shadow-xl rounded-2xl transition-all duration-300 hover:scale-[1.02] overflow-hidden">
+        <!-- 顶部图片区域 -->
+        <div class="relative h-48 bg-gradient-to-br from-slate-100 to-slate-200 overflow-hidden">
+          <!-- 背景装饰 -->
+          <div class="absolute inset-0 opacity-10">
+            <component :is="icons[item.icon]" class="w-32 h-32 absolute -right-8 -top-8 text-slate-400" />
+          </div>
+          
+          <!-- 右上角状态标签 -->
+          <div class="absolute top-3 right-3">
+            <span
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold shadow-lg"
+              :class="item.status === '活动报名中' ? 'bg-emerald-500 text-white' : item.status === '报名未开始' ? 'bg-amber-500 text-white' : 'bg-slate-400 text-white'"
+            >
+              <component :is="statusIconMap[item.status]" class="w-3 h-3" />
+              {{ item.status }}
+            </span>
+          </div>
+          
+          <!-- 右下角人数角标 -->
+          <div class="absolute bottom-3 right-3 bg-slate-800/80 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-sm font-semibold">
+            {{ item.ybmrs }}/{{ item.zyrs }}
           </div>
         </div>
-      </CardHeader>
-      <CardContent class="space-y-4 px-6 pb-20">
-        <div class="flex items-center text-slate-700 gap-2">
-          <Calendar class="w-5 h-5 text-blue-600" />
-          <span class="text-[0.95rem]">{{ item.bmsj }}</span>
+
+        <!-- 卡片内容区域 -->
+        <div class="p-5">
+          <!-- 活动类型标签 -->
+          <div v-if="item.hdbq" class="flex flex-wrap gap-2 mb-3">
+            <span
+              v-for="tag in item.hdbq.split(',')"
+              :key="tag"
+              class="inline-flex items-center text-xs font-medium text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md"
+            >
+              #{{ tag.trim() }}
+            </span>
+          </div>
+
+          <!-- 活动标题 -->
+          <h3 class="text-lg font-bold text-slate-900 mb-2 line-clamp-2">
+            {{ item.hdmc }}
+          </h3>
+
+          <!-- 活动描述（如果有的话，这里用地点代替） -->
+          <p class="text-sm text-slate-600 mb-4 line-clamp-2">
+            {{ item.hddd }}
+          </p>
+
+          <!-- 活动信息 -->
+          <div class="space-y-2.5 mb-4">
+            <div class="flex items-center gap-2 text-sm text-slate-600">
+              <Clock class="w-4 h-4 text-slate-400 flex-shrink-0" />
+              <span>{{ item.bmsj }}</span>
+            </div>
+            <div class="flex items-center gap-2 text-sm text-slate-600">
+              <MapPin class="w-4 h-4 text-slate-400 flex-shrink-0" />
+              <span class="line-clamp-1">{{ item.hddd }}</span>
+            </div>
+            <div class="flex items-center gap-2 text-sm text-slate-600">
+              <Users class="w-4 h-4 text-slate-400 flex-shrink-0" />
+              <span>{{ item.ybmrs }} / {{ item.zyrs }} 已报名</span>
+            </div>
+          </div>
+
+          <!-- 底部操作区 -->
+          <div class="flex items-center justify-between pt-4 border-t border-slate-100">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                <component :is="icons[item.icon]" class="w-4 h-4 text-white" />
+              </div>
+              <span class="text-xs text-slate-500">志愿者协会</span>
+            </div>
+            <Button
+              @click="registerActivity(item)"
+              class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-md hover:shadow-lg transition-all"
+            >
+              立即报名
+            </Button>
+          </div>
         </div>
-        <div class="flex items-center text-slate-700 gap-2">
-          <MapPin class="w-5 h-5 text-emerald-600" />
-          <span class="text-[0.95rem]">{{ item.hddd }}</span>
-        </div>
-        <div class="flex items-center text-slate-700 gap-2">
-          <Users class="w-5 h-5 text-cyan-600" />
-          <span class="text-[0.95rem]">
-            <span class="font-semibold text-cyan-700">{{ item.ybmrs }}</span>
-            <span class="text-slate-500 mx-1">/</span>
-            <span>{{ item.zyrs }}</span>
-          </span>
-        </div>
-      
-      </CardContent>
-      <div class="absolute bottom-4 left-4 flex items-center gap-3">
-        <Button variant="default" class="group gap-2" @click="openDetail(item.id)">
-          <span>查看详情</span>
-          <Info class="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-        </Button>
-        <Button variant="secondary" class="group" @click="registerActivity(item)">报名</Button>
-      </div>
-      <div class="absolute bottom-4 right-4">
-        <span class="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs md:text-sm font-medium shadow-sm transition-colors duration-300" :class="statusClassMap[item.status]">
-          <component :is="statusIconMap[item.status]" class="w-4 h-4" />
-          <span>{{ item.status }}</span>
-        </span>
-      </div>
-    </Card>
+
+        <!-- 查看详情悬浮按钮 -->
+        <button
+          @click="openDetail(item.id)"
+          class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/95 backdrop-blur-sm text-slate-900 px-6 py-3 rounded-xl shadow-2xl font-medium flex items-center gap-2 z-10"
+        >
+          <Info class="w-4 h-4" />
+          查看详情
+        </button>
+      </Card>
     </div>
   </div>
 
