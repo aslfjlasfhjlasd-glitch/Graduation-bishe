@@ -363,8 +363,8 @@ public class DepartmentHeadService {
             }
             
             String currentStatus = activity.getFbZt();
-            if (!"待申报".equals(currentStatus)) {
-                return Result.error("只能申报状态为'待申报'的活动");
+            if (!"未申报".equals(currentStatus)) {
+                return Result.error("只能申报状态为'未申报'的活动");
             }
             
             int rows = studentActivityMapper.updateActivityPublishStatus(activityId, "待发布");
@@ -400,7 +400,7 @@ public class DepartmentHeadService {
                 return Result.error("只能撤销状态为'待发布'的活动");
             }
             
-            int rows = studentActivityMapper.updateActivityPublishStatus(activityId, "待申报");
+            int rows = studentActivityMapper.updateActivityPublishStatus(activityId, "未申报");
             if (rows > 0) {
                 return Result.success("已撤销申报");
             } else {
@@ -447,11 +447,11 @@ public class DepartmentHeadService {
         activity.setHdZt("未开始"); // 活动状态初始为未开始
         
         // 根据用户类型设置不同的默认发布状态
-        // 管理员创建的活动默认为"待发布"，负责人创建的活动默认为"待申报"
+        // 管理员创建的活动默认为"待发布"，负责人创建的活动默认为"未申报"
         if (isAdmin) {
             activity.setFbZt("待发布"); // 管理员创建的活动默认待发布
         } else {
-            activity.setFbZt("待申报"); // 负责人创建的活动默认待申报
+            activity.setFbZt("未申报"); // 负责人创建的活动默认未申报
         }
         
         activity.setBbh(0); // 乐观锁版本号初始为0

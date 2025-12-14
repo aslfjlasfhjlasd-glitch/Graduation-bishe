@@ -603,12 +603,7 @@ onUnmounted(() => {
 
             <!-- 底部操作区 -->
             <div class="flex items-center justify-between pt-4 border-t border-slate-100">
-              <div class="flex items-center gap-2">
-                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-                  <component :is="icons[item.icon]" class="w-4 h-4 text-white" />
-                </div>
-                <span class="text-xs text-slate-500">志愿者协会</span>
-              </div>
+              <span class="text-xs text-slate-500">志愿者协会</span>
               <Button
                 @click="registerActivity(item)"
                 class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-md hover:shadow-lg transition-all"
@@ -849,12 +844,7 @@ onUnmounted(() => {
 
           <!-- 底部操作区 -->
           <div class="flex items-center justify-between pt-4 border-t border-slate-100">
-            <div class="flex items-center gap-2">
-              <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-                <component :is="icons[item.icon]" class="w-4 h-4 text-white" />
-              </div>
-              <span class="text-xs text-slate-500">志愿者协会</span>
-            </div>
+            <span class="text-xs text-slate-500">志愿者协会</span>
             <Button
               @click="registerActivity(item)"
               class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-md hover:shadow-lg transition-all"
@@ -927,6 +917,10 @@ onUnmounted(() => {
           <div class="flex items-start gap-2 bg-white/70 border border-slate-200 rounded-lg p-2.5">
             <ShieldCheck class="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
             <div class="text-sm text-slate-700"><span class="font-medium">活动保障：</span>{{ detail.hdbz }}</div>
+          </div>
+          <div class="flex items-start gap-2 bg-white/70 border border-slate-200 rounded-lg p-2.5">
+            <Star class="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div class="text-sm text-slate-700"><span class="font-medium">可获得学分：</span>{{ detail.hdxf || '0' }} 学分</div>
           </div>
           <div class="flex items-start gap-2 bg-white/70 border border-slate-200 rounded-lg p-2.5">
             <Building2 class="w-4 h-4 text-slate-700 flex-shrink-0 mt-0.5" />

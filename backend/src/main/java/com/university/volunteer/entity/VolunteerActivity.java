@@ -51,6 +51,8 @@ public class VolunteerActivity {
     private String zyXz;
     // 乐观锁版本号
     private Integer bbh;
+    // 活动学分
+    private Double hdXf;
     
     // 新增：标签列表（用于结构化数据）
     private List<Tag> tags;
@@ -225,6 +227,14 @@ public class VolunteerActivity {
 
     public void setBbh(Integer bbh) {
         this.bbh = bbh;
+    }
+
+    public Double getHdXf() {
+        return hdXf;
+    }
+
+    public void setHdXf(Double hdXf) {
+        this.hdXf = hdXf;
     }
 
     public List<Tag> getTags() {

@@ -125,7 +125,7 @@ const getStatusClass = (status) => {
 // 计算发布状态的显示样式
 const getPublishStatusClass = (status) => {
   const statusMap = {
-    '待申报': 'bg-yellow-100 text-yellow-700',
+    '未申报': 'bg-yellow-100 text-yellow-700',
     '待发布': 'bg-blue-100 text-blue-700',
     '已发布': 'bg-green-100 text-green-700',
     '已下架': 'bg-slate-100 text-slate-500'
@@ -337,7 +337,7 @@ const deleteActivity = async (activityId, activityName) => {
 
 // 申报活动
 const submitActivity = async (activity) => {
-  if (!confirm(`确定要申报活动"${activity.hdMc}"吗？申报后将提交给管理员审核发布。`)) {
+  if (!confirm(`确定要申报活动"${activity.hdMc}"吗？申报后状态将变为"待发布"，并提交给管理员审核发布。`)) {
     return
   }
 
@@ -389,9 +389,9 @@ const cancelSubmitActivity = async (activity) => {
   }
 }
 
-// 判断是否可以申报（只有待申报的活动可以申报）
+// 判断是否可以申报（只有未申报的活动可以申报）
 const canSubmit = (activity) => {
-  return activity.fbZt === '待申报'
+  return activity.fbZt === '未申报'
 }
 
 // 判断是否可以撤销申报（只有待发布的活动可以撤销申报）
@@ -455,7 +455,7 @@ onMounted(() => {
                       {{ computeStatus(activity) }}
                     </span>
                     <span :class="['px-3 py-1 rounded-full text-xs font-medium', getPublishStatusClass(activity.fbZt)]">
-                      {{ activity.fbZt || '待申报' }}
+                      {{ activity.fbZt || '未申报' }}
                     </span>
                   </div>
                   <p class="text-sm text-slate-600 line-clamp-2">{{ activity.hdNr || '暂无描述' }}</p>

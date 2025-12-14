@@ -21,15 +21,15 @@ public class AdminService {
     private VolunteerAuditMapper volunteerAuditMapper;
 
     /**
-     * 获取所有活动列表（管理员可以查看除"待申报"外的所有活动）
+     * 获取所有活动列表（管理员可以查看除"未申报"外的所有活动）
      */
     public Result<List<VolunteerActivity>> getAllActivities() {
         try {
             List<VolunteerActivity> activities = studentActivityMapper.findAllActivities();
             
-            // 过滤掉"待申报"状态的活动，保留其他所有状态
+            // 过滤掉"未申报"状态的活动，保留其他所有状态
             List<VolunteerActivity> visibleActivities = activities.stream()
-                    .filter(activity -> !"待申报".equals(activity.getFbZt()))
+                    .filter(activity -> !"未申报".equals(activity.getFbZt()))
                     .collect(java.util.stream.Collectors.toList());
             
             // 动态更新活动状态
