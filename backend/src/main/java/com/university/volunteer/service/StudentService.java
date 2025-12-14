@@ -230,6 +230,68 @@ public class StudentService {
         }
     }
 
+    /**
+     * 更新学生标签（用于首次登录设置）
+     * @param studentId 学号
+     * @param tagIds 标签ID列表
+     * @return 更新结果
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public Result<String> updateStudentTags(Integer studentId, List<Integer> tagIds) {
+        try {
+            if (studentId == null) {
+                return Result.error("学号不能为空");
+            }
+            
+            // 验证学生是否存在
+            Student student = studentMapper.findStudentById(studentId);
+            if (student == null) {
+                return Result.error("学生信息不存在");
+            }
+            
+            // 1. 删除学生的所有旧标签关联
+            studentTagMapper.deleteByStudentId(studentId);
+            
+            // 2. 如果有新标签，批量插入
+            if (tagIds != null && !tagIds.isEmpty()) {
+                List<StudentTag> studentTags = new ArrayList<>();
+                for (Integer tagId : tagIds) {
+                    StudentTag st = new StudentTag();
+                    st.setXsXh(studentId);
+                    st.setBqId(tagId);
+                    studentTags.add(st);
+                }
+                studentTagMapper.insertBatch(studentTags);
+                
+                // 3. 更新冗余字段（用于兼容和快速查询）
+                List<Tag> tags = tagMapper.findByIds(tagIds);
+                if (tags != null && !tags.isEmpty()) {
+                    // 分离兴趣标签和技能标签
+                    String xqBq = tags.stream()
+                            .filter(tag -> tag.getBqLx() == 1)
+                            .map(Tag::getBqMc)
+                            .collect(Collectors.joining(","));
+                    String jnBq = tags.stream()
+                            .filter(tag -> tag.getBqLx() == 2)
+                            .map(Tag::getBqMc)
+                            .collect(Collectors.joining(","));
+                    
+                    // 更新学生表中的标签字段
+                    Student updateStudent = new Student();
+                    updateStudent.setXsXh(studentId);
+                    updateStudent.setXqBq(xqBq.isEmpty() ? null : xqBq);
+                    updateStudent.setJnBq(jnBq.isEmpty() ? null : jnBq);
+                    studentMapper.updateStudentProfile(updateStudent);
+                }
+            }
+            
+            return Result.success("标签更新成功");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("标签更新失败: " + e.getMessage());
+        }
+    }
+
     // ========== 管理员账号管理功能 ==========
 
     /**

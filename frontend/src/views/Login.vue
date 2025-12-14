@@ -66,11 +66,23 @@ const handleLogin = async (role) => {
 
       // 根据角色处理登录后的逻辑
       if (role === 'student') {
-        // ... (学生逻辑保持不变) ...
+        // 学生登录逻辑
         localStorage.setItem('studentId', result.data.xsXh);
         localStorage.setItem('studentName', result.data.xsXm || '');
         localStorage.setItem('userRole', 'student');
-        router.push('/student/dashboard');
+        localStorage.setItem('role', 'student'); // 添加role字段供路由守卫使用
+        
+        // 【核心修改】检查是否使用默认密码123456
+        if (password.value === '123456') {
+          console.log('检测到首次登录（使用默认密码），跳转到首次登录设置页面');
+          // 标记首次登录状态
+          localStorage.setItem('isFirstLogin', 'true');
+          // 跳转到首次登录设置页面
+          router.push('/first-login');
+        } else {
+          // 非首次登录，直接跳转到学生首页
+          router.push('/student/dashboard');
+        }
 
       } else if (role === 'head') {
         // 学院/部门负责人登录逻辑
@@ -105,6 +117,7 @@ const handleLogin = async (role) => {
         if (headUsername) {
           localStorage.setItem('headUsername', headUsername);
           localStorage.setItem('userRole', 'head');
+          localStorage.setItem('role', 'head'); // 添加role字段供路由守卫使用
           console.log('登录成功，已保存 headUsername:', headUsername);
           router.push('/head/dashboard');
         } else {
@@ -118,6 +131,7 @@ const handleLogin = async (role) => {
         localStorage.setItem('adminName', result.data.glyMc || '管理员');
         localStorage.setItem('adminUsername', result.data.glyZh || '');
         localStorage.setItem('userRole', 'superadmin');
+        localStorage.setItem('role', 'admin'); // 添加role字段供路由守卫使用
         router.push('/admin/dashboard');
       }
     } else {
