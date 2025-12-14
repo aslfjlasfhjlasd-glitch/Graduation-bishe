@@ -513,7 +513,7 @@ onUnmounted(() => {
             <div class="absolute top-3 right-3 z-10">
               <span
                 class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold shadow-lg backdrop-blur-sm"
-                :class="item.status === '活动报名中' ? 'bg-emerald-500/90 text-white' : item.status === '报名未开始' ? 'bg-amber-500/90 text-white' : 'bg-slate-400/90 text-white'"
+                :class="item.status === '活动报名中' ? 'bg-emerald-500/90 text-white' : item.status === '报名未开始' ? 'bg-amber-500/90 text-white' : item.status === '活动进行中' ? 'bg-red-500/90 text-white' : 'bg-slate-400/90 text-white'"
               >
                 <component :is="statusIconMap[item.status]" class="w-3 h-3" />
                 {{ item.status }}
@@ -790,7 +790,7 @@ onUnmounted(() => {
           <div class="absolute top-3 right-3 z-10">
             <span
               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold shadow-lg backdrop-blur-sm"
-              :class="item.status === '活动报名中' ? 'bg-emerald-500/90 text-white' : item.status === '报名未开始' ? 'bg-amber-500/90 text-white' : 'bg-slate-400/90 text-white'"
+              :class="item.status === '活动报名中' ? 'bg-emerald-500/90 text-white' : item.status === '报名未开始' ? 'bg-amber-500/90 text-white' : item.status === '活动进行中' ? 'bg-red-500/90 text-white' : 'bg-slate-400/90 text-white'"
             >
               <component :is="statusIconMap[item.status]" class="w-3 h-3" />
               {{ item.status }}

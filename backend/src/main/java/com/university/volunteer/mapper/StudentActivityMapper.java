@@ -159,13 +159,8 @@ public interface StudentActivityMapper {
                                  @Param("issuedAt") java.util.Date issuedAt);
 
     /**
-     * 更新活动信息
+     * 更新活动信息（使用乐观锁，在XML中实现）
      */
-    @Update("UPDATE t_zyhd SET HD_MC = #{hdMc}, HD_NR = #{hdNr}, HD_DD = #{hdDd}, " +
-            "BM_KSSJ = #{bmKssj}, BM_JSSJ = #{bmJssj}, HD_KSSJ = #{hdKssj}, HD_JSSJ = #{hdJssj}, " +
-            "ZM_RS = #{zmRs}, HD_BQ = #{hdBq}, JN_YQ = #{jnYq}, ZY_XZ = #{zyXz}, " +
-            "HDXQ = #{hdXq}, HD_BZ = #{hdBz} " +
-            "WHERE HD_BH = #{hdBh}")
     int updateActivity(VolunteerActivity activity);
 
     /**
