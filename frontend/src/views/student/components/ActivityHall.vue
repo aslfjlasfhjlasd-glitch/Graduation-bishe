@@ -25,6 +25,15 @@ const pickIcon = (title) => {
   return 'Sparkles'
 }
 
+// 🔥 更新：根据活动ID获取对应的封面图片路径
+// 图片命名格式：1.png, 2.png, ..., 38.png
+// 活动ID循环使用这38张图片
+const getActivityCover = (activityId) => {
+  // 总共有38张图片，循环使用
+  const imageIndex = ((activityId - 1) % 38) + 1
+  return `/activity-covers/${imageIndex}.png`
+}
+
 const activities = ref([])
 const listLoading = ref(false)
 const detailOpen = ref(false)
@@ -48,8 +57,8 @@ const loadActivities = async () => {
     if (res.data && res.data.code === 200) {
       const rows = Array.isArray(res.data.data) ? res.data.data : []
       activities.value = rows.map(r => ({
-        id: Number(r.id),
-        hdmc: String(r.hdmc || ''),
+        id: Number(r.hdBh || r.hdbh || r.HD_BH || r.id),  // 🔥 使用活动编号字段
+        hdmc: String(r.hdmc || r.hdMc || r.HD_MC || ''),
         bmsj: String(r.bmsj || ''),
         hdsj: String(r.hdsj || ''),
         hddd: String(r.hddd || ''),
@@ -394,6 +403,29 @@ const filteredActivities = computed(() => {
     result = result.filter(a => a.hddd === selectedLocation.value)
   }
 
+  // 🔥 按状态优先级排序
+  // 优先级：活动进行中 > 活动报名中 > 报名未开始 > 活动未开始 > 活动已结束
+  const statusPriority = {
+    '活动进行中': 1,
+    '活动报名中': 2,
+    '报名未开始': 3,
+    '活动未开始': 4,
+    '活动已结束': 5
+  }
+
+  result.sort((a, b) => {
+    const priorityA = statusPriority[a.status] || 999
+    const priorityB = statusPriority[b.status] || 999
+    
+    // 按优先级排序
+    if (priorityA !== priorityB) {
+      return priorityA - priorityB
+    }
+    
+    // 相同状态下，按活动ID排序（新活动在前）
+    return b.id - a.id
+  })
+
   return result
 })
 
@@ -468,7 +500,14 @@ onUnmounted(() => {
         >
           <!-- 顶部图片区域 -->
           <div class="relative h-48 bg-gradient-to-br from-slate-100 to-slate-200 overflow-hidden">
-            <!-- 背景装饰 -->
+            <!-- 活动封面图片 -->
+            <img
+              :src="getActivityCover(item.id)"
+              :alt="item.hdmc"
+              class="w-full h-full object-cover"
+              @error="$event.target.style.display='none'"
+            />
+            <!-- 背景装饰（图片加载失败时显示） -->
             <div class="absolute inset-0 opacity-10">
               <component :is="icons[item.icon]" class="w-32 h-32 absolute -right-8 -top-8 text-slate-400" />
             </div>
@@ -742,7 +781,14 @@ onUnmounted(() => {
       <Card v-for="item in filteredActivities" :key="item.id" class="group relative bg-white border border-slate-200 shadow-sm hover:shadow-xl rounded-2xl transition-all duration-300 hover:scale-[1.02] overflow-hidden">
         <!-- 顶部图片区域 -->
         <div class="relative h-48 bg-gradient-to-br from-slate-100 to-slate-200 overflow-hidden">
-          <!-- 背景装饰 -->
+          <!-- 活动封面图片 -->
+          <img
+            :src="getActivityCover(item.id)"
+            :alt="item.hdmc"
+            class="w-full h-full object-cover"
+            @error="$event.target.style.display='none'"
+          />
+          <!-- 背景装饰（图片加载失败时显示） -->
           <div class="absolute inset-0 opacity-10">
             <component :is="icons[item.icon]" class="w-32 h-32 absolute -right-8 -top-8 text-slate-400" />
           </div>
