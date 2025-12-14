@@ -25,13 +25,9 @@ const pickIcon = (title) => {
   return 'Sparkles'
 }
 
-// 🔥 更新：根据活动ID获取对应的封面图片路径
-// 图片命名格式：1.png, 2.png, ..., 38.png
-// 活动ID循环使用这38张图片
+// 🔥 新增：根据活动编号获取封面图片路径
 const getActivityCover = (activityId) => {
-  // 总共有38张图片，循环使用
-  const imageIndex = ((activityId - 1) % 38) + 1
-  return `/activity-covers/${imageIndex}.png`
+  return `/activity-covers/${activityId}.png`
 }
 
 const activities = ref([])
@@ -403,7 +399,7 @@ const filteredActivities = computed(() => {
     result = result.filter(a => a.hddd === selectedLocation.value)
   }
 
-  // 🔥 按状态优先级排序
+  // 🔥 按活动状态优先级排序
   // 优先级：活动进行中 > 活动报名中 > 报名未开始 > 活动未开始 > 活动已结束
   const statusPriority = {
     '活动进行中': 1,
@@ -412,18 +408,18 @@ const filteredActivities = computed(() => {
     '活动未开始': 4,
     '活动已结束': 5
   }
-
+  
   result.sort((a, b) => {
     const priorityA = statusPriority[a.status] || 999
     const priorityB = statusPriority[b.status] || 999
     
-    // 按优先级排序
+    // 首先按状态优先级排序
     if (priorityA !== priorityB) {
       return priorityA - priorityB
     }
     
-    // 相同状态下，按活动ID排序（新活动在前）
-    return b.id - a.id
+    // 状态相同时，按活动编号排序（保证封面图片对应）
+    return a.id - b.id
   })
 
   return result
@@ -498,25 +494,26 @@ onUnmounted(() => {
           :key="item.id"
           class="group relative bg-white border border-slate-200 shadow-sm hover:shadow-xl rounded-2xl transition-all duration-300 hover:scale-[1.02] overflow-hidden"
         >
-          <!-- 顶部图片区域 -->
-          <div class="relative h-48 bg-gradient-to-br from-slate-100 to-slate-200 overflow-hidden">
-            <!-- 活动封面图片 -->
+          <!-- 🔥 封面图片区域 -->
+          <div class="relative h-48 overflow-hidden bg-slate-100">
             <img
               :src="getActivityCover(item.id)"
               :alt="item.hdmc"
-              class="w-full h-full object-cover"
-              @error="$event.target.style.display='none'"
+              class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+              @error="(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex' }"
             />
-            <!-- 背景装饰（图片加载失败时显示） -->
-            <div class="absolute inset-0 opacity-10">
-              <component :is="icons[item.icon]" class="w-32 h-32 absolute -right-8 -top-8 text-slate-400" />
+            <!-- 备用图标显示（图片加载失败时） -->
+            <div class="absolute inset-0 hidden items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
+              <component :is="icons[item.icon]" class="w-20 h-20 text-slate-300" />
             </div>
+            <!-- 渐变遮罩 -->
+            <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
             
             <!-- 右上角状态标签 -->
-            <div class="absolute top-3 right-3">
+            <div class="absolute top-3 right-3 z-10">
               <span
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold shadow-lg"
-                :class="item.status === '活动报名中' ? 'bg-emerald-500 text-white' : item.status === '报名未开始' ? 'bg-amber-500 text-white' : 'bg-slate-400 text-white'"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold shadow-lg backdrop-blur-sm"
+                :class="item.status === '活动报名中' ? 'bg-emerald-500/90 text-white' : item.status === '报名未开始' ? 'bg-amber-500/90 text-white' : 'bg-slate-400/90 text-white'"
               >
                 <component :is="statusIconMap[item.status]" class="w-3 h-3" />
                 {{ item.status }}
@@ -524,22 +521,22 @@ onUnmounted(() => {
             </div>
             
             <!-- 右下角人数角标 -->
-            <div class="absolute bottom-3 right-3 bg-slate-800/80 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-sm font-semibold">
+            <div class="absolute bottom-3 right-3 bg-slate-900/80 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-sm font-semibold z-10">
               {{ item.ybmrs }}/{{ item.zyrs }}
             </div>
             
             <!-- 左上角推荐类型标签 -->
-            <div class="absolute top-3 left-3">
+            <div class="absolute top-3 left-3 z-10">
               <span
                 v-if="item.recommendType === 'CONTENT_BASED'"
-                class="inline-flex items-center gap-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold px-3 py-1.5 rounded-md shadow-lg"
+                class="inline-flex items-center gap-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold px-3 py-1.5 rounded-md shadow-lg backdrop-blur-sm"
               >
                 <Star class="w-3 h-3 fill-current" />
                 匹配 {{ item.matchScore }}分
               </span>
               <span
                 v-else
-                class="inline-flex items-center gap-1 bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs font-bold px-3 py-1.5 rounded-md shadow-lg"
+                class="inline-flex items-center gap-1 bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs font-bold px-3 py-1.5 rounded-md shadow-lg backdrop-blur-sm"
               >
                 <TrendingUp class="w-3 h-3" />
                 热门推荐
@@ -779,25 +776,26 @@ onUnmounted(() => {
 
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <Card v-for="item in filteredActivities" :key="item.id" class="group relative bg-white border border-slate-200 shadow-sm hover:shadow-xl rounded-2xl transition-all duration-300 hover:scale-[1.02] overflow-hidden">
-        <!-- 顶部图片区域 -->
-        <div class="relative h-48 bg-gradient-to-br from-slate-100 to-slate-200 overflow-hidden">
-          <!-- 活动封面图片 -->
+        <!-- 🔥 封面图片区域 -->
+        <div class="relative h-48 overflow-hidden bg-slate-100">
           <img
             :src="getActivityCover(item.id)"
             :alt="item.hdmc"
-            class="w-full h-full object-cover"
-            @error="$event.target.style.display='none'"
+            class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+            @error="(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex' }"
           />
-          <!-- 背景装饰（图片加载失败时显示） -->
-          <div class="absolute inset-0 opacity-10">
-            <component :is="icons[item.icon]" class="w-32 h-32 absolute -right-8 -top-8 text-slate-400" />
+          <!-- 备用图标显示（图片加载失败时） -->
+          <div class="absolute inset-0 hidden items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
+            <component :is="icons[item.icon]" class="w-20 h-20 text-slate-300" />
           </div>
+          <!-- 渐变遮罩 -->
+          <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
           
           <!-- 右上角状态标签 -->
-          <div class="absolute top-3 right-3">
+          <div class="absolute top-3 right-3 z-10">
             <span
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold shadow-lg"
-              :class="item.status === '活动报名中' ? 'bg-emerald-500 text-white' : item.status === '报名未开始' ? 'bg-amber-500 text-white' : 'bg-slate-400 text-white'"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold shadow-lg backdrop-blur-sm"
+              :class="item.status === '活动报名中' ? 'bg-emerald-500/90 text-white' : item.status === '报名未开始' ? 'bg-amber-500/90 text-white' : 'bg-slate-400/90 text-white'"
             >
               <component :is="statusIconMap[item.status]" class="w-3 h-3" />
               {{ item.status }}
@@ -805,7 +803,7 @@ onUnmounted(() => {
           </div>
           
           <!-- 右下角人数角标 -->
-          <div class="absolute bottom-3 right-3 bg-slate-800/80 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-sm font-semibold">
+          <div class="absolute bottom-3 right-3 bg-slate-900/80 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-sm font-semibold z-10">
             {{ item.ybmrs }}/{{ item.zyrs }}
           </div>
         </div>
