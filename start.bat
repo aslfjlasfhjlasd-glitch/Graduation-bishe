@@ -31,7 +31,7 @@ start "Vite-Frontend" cmd /c "cd frontend && npm run dev"
 :: 3. Wait 15 seconds for services to initialize, then open browser
 echo [3/3] Waiting for services to initialize...
 timeout /t 15 >nul
-start http://localhost:5173
+start http://localhost:5174
 
 echo.
 echo ======================================================

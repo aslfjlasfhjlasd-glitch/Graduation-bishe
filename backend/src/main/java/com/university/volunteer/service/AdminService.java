@@ -77,7 +77,7 @@ public class AdminService {
     }
 
     /**
-     * 发布活动（将"待发布"状态的活动改为"已发布"）
+     * 发布活动（将"待发布"或"已下架"状态的活动改为"已发布"）
      */
     @Transactional(rollbackFor = Exception.class)
     public Result<String> publishActivity(Integer activityId) {
@@ -93,8 +93,9 @@ public class AdminService {
             }
             
             String currentStatus = activity.getFbZt();
-            if (!"待发布".equals(currentStatus)) {
-                return Result.error("只能发布状态为'待发布'的活动");
+            // 修改逻辑：允许"待发布"或"已下架"的活动发布
+            if (!"待发布".equals(currentStatus) && !"已下架".equals(currentStatus)) {
+                return Result.error("只能发布状态为'待发布'或'已下架'的活动，当前状态：" + currentStatus);
             }
             
             int rows = studentActivityMapper.updateActivityPublishStatus(activityId, "已发布");

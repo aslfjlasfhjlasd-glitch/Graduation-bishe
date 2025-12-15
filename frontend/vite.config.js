@@ -11,11 +11,15 @@ export default defineConfig({
     },
   },
   server: {
+    port: 5174,  // 修改端口号，避开浏览器缓存
     proxy: {
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true
       }
     }
+  },
+  optimizeDeps: {
+    force: true
   }
 })

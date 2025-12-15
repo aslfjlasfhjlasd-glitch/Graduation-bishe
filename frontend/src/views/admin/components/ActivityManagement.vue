@@ -177,7 +177,7 @@ const canUnpublish = (activity) => {
 
 // 获取按钮文本（根据状态显示不同文本）
 const getPublishButtonText = (activity) => {
-  return activity.fbZt === '已下架' ? '发布活动' : '发布'
+  return '发布活动'
 }
 
 // 获取下架按钮文本

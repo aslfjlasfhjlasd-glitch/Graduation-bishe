@@ -158,6 +158,7 @@ const openEditDialog = (activity) => {
     hdKssj: formatDateTimeForInput(activity.hdKssj),
     hdJssj: formatDateTimeForInput(activity.hdJssj),
     zmRs: activity.zmRs,
+    hdXf: activity.hdXf,
     hdBq: activity.hdBq || '',
     jnYq: activity.jnYq || '',
     zyXz: activity.zyXz || '',
@@ -186,6 +187,7 @@ const openCreateDialog = () => {
     hdKssj: '',
     hdJssj: '',
     zmRs: null,
+    hdXf: null,
     hdBq: '',
     jnYq: '',
     zyXz: '',
@@ -277,6 +279,7 @@ const saveCreate = async () => {
       hdNr: newActivity.value.hdNr,
       hdDd: newActivity.value.hdDd,
       zmRs: parseInt(newActivity.value.zmRs),
+      hdXf: newActivity.value.hdXf ? parseFloat(newActivity.value.hdXf) : null,
       bmKssj: new Date(newActivity.value.bmKssj).getTime(),
       bmJssj: new Date(newActivity.value.bmJssj).getTime(),
       hdKssj: new Date(newActivity.value.hdKssj).getTime(),
@@ -590,6 +593,11 @@ onMounted(() => {
               <label class="block text-sm font-medium text-slate-700 mb-2">招募人数 *</label>
               <Input v-model="editingActivity.zmRs" type="number" placeholder="请输入招募人数" />
             </div>
+
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-2">活动学分</label>
+              <Input v-model="editingActivity.hdXf" type="number" step="0.1" placeholder="请输入活动学分（如：1.5）" />
+            </div>
           </div>
 
           <!-- 时间设置 -->
@@ -726,6 +734,11 @@ onMounted(() => {
             <div>
               <label class="block text-sm font-medium text-slate-700 mb-2">招募人数 *</label>
               <Input v-model="newActivity.zmRs" type="number" placeholder="请输入招募人数" />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-2">活动学分</label>
+              <Input v-model="newActivity.hdXf" type="number" step="0.1" placeholder="请输入活动学分（如：1.5）" />
             </div>
           </div>
 

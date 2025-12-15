@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Button from '@/components/ui/button/button.vue';
-import Badge from '@/components/ui/badge/badge.vue';
+import Badge from '@/components/ui/badge/Badge.vue';
 import Textarea from '@/components/ui/textarea/Textarea.vue';
 import { UserCheck, Eye, CheckCircle, XCircle, Phone, Mail, Users, BookOpen, Award, AlertCircle, Loader2 } from 'lucide-vue-next';
 import { getVolunteerReviews, approveVolunteerRegistration, rejectVolunteerRegistration } from '@/api/admin';
@@ -403,9 +403,55 @@ onMounted(() => {
                   </span>
                   <span class="text-sm font-medium text-slate-900">{{ selectedReview.phone }}</span>
                 </div>
-                <div class="flex items-start justify-between py-2">
+                <div class="flex items-start justify-between py-2 border-b border-slate-100">
                   <span class="text-sm text-slate-500 w-24">政治面貌</span>
                   <span class="text-sm font-medium text-slate-900">{{ selectedReview.politic }}</span>
+                </div>
+                
+                <!-- 兴趣标签 -->
+                <div v-if="selectedReview.interests" class="pt-2 border-t border-slate-200">
+                  <div class="flex items-start gap-2 py-2">
+                    <span class="text-sm text-slate-500 w-24 flex items-center gap-1">
+                      <BookOpen class="w-3 h-3" />
+                      兴趣标签
+                    </span>
+                    <div class="flex-1 flex flex-wrap gap-1.5">
+                      <span
+                        v-for="(interest, idx) in selectedReview.interests.split(',')"
+                        :key="idx"
+                        class="px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full text-xs"
+                      >
+                        {{ interest.trim() }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- 技能标签 -->
+                <div v-if="selectedReview.skills" class="border-t border-slate-100">
+                  <div class="flex items-start gap-2 py-2">
+                    <span class="text-sm text-slate-500 w-24 flex items-center gap-1">
+                      <Award class="w-3 h-3" />
+                      技能标签
+                    </span>
+                    <div class="flex-1 flex flex-wrap gap-1.5">
+                      <span
+                        v-for="(skill, idx) in selectedReview.skills.split(',')"
+                        :key="idx"
+                        class="px-2 py-0.5 bg-green-50 text-green-700 border border-green-200 rounded-full text-xs"
+                      >
+                        {{ skill.trim() }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- 个人简介 -->
+                <div v-if="selectedReview.introduction" class="border-t border-slate-100">
+                  <div class="flex items-start gap-2 py-2">
+                    <span class="text-sm text-slate-500 w-24">个人简介</span>
+                    <p class="flex-1 text-sm text-slate-700 leading-relaxed">{{ selectedReview.introduction }}</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -447,57 +493,6 @@ onMounted(() => {
             </Card>
           </div>
 
-          <!-- 兴趣标签 -->
-          <Card v-if="selectedReview.interests">
-            <CardHeader>
-              <CardTitle class="text-base flex items-center gap-2">
-                <BookOpen class="w-4 h-4" />
-                兴趣标签
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div class="flex flex-wrap gap-2">
-                <span 
-                  v-for="(interest, idx) in selectedReview.interests.split(',')" 
-                  :key="idx"
-                  class="px-3 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-full text-sm"
-                >
-                  {{ interest.trim() }}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <!-- 技能标签 -->
-          <Card v-if="selectedReview.skills">
-            <CardHeader>
-              <CardTitle class="text-base flex items-center gap-2">
-                <Award class="w-4 h-4" />
-                技能标签
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div class="flex flex-wrap gap-2">
-                <span 
-                  v-for="(skill, idx) in selectedReview.skills.split(',')" 
-                  :key="idx"
-                  class="px-3 py-1 bg-green-50 text-green-700 border border-green-200 rounded-full text-sm"
-                >
-                  {{ skill.trim() }}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <!-- 个人简介 -->
-          <Card v-if="selectedReview.introduction">
-            <CardHeader>
-              <CardTitle class="text-base">个人简介</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p class="text-sm text-slate-700 leading-relaxed">{{ selectedReview.introduction }}</p>
-            </CardContent>
-          </Card>
 
           <!-- 审核备注（如果已拒绝） -->
           <Card v-if="selectedReview.auditReason" class="border-red-200 bg-red-50">
