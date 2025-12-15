@@ -39,6 +39,8 @@ onMounted(() => {
  * @param role 角色类型 (student, head, admin)
  */
 const handleLogin = async (role) => {
+  console.log('👆 按钮被点击了，正在尝试登录角色:', role); // 调试日志1
+
   if (!username.value || !password.value) {
     alert('请输入用户名和密码');
     return;
@@ -47,10 +49,30 @@ const handleLogin = async (role) => {
   try {
     // 调用登录API
     const result = await login(username.value, password.value, role);
+    console.log('📡 后端返回结果:', result); // 调试日志2
     
     if (result.code === 200) {
       // 登录成功
-      console.log('Login success, user data:', result.data);
+      console.log('✅ Login success, user data:', result.data);
+
+      // 🔥🔥🔥【关键修复】保存 Token 🔥🔥🔥
+      // 由于后端暂未实现JWT，使用临时token绕过路由守卫
+      if (result.data && result.data.token) {
+        // 如果后端返回了token，使用后端的token
+        localStorage.setItem('token', result.data.token);
+        console.log('💾 使用后端返回的Token');
+      } else if (result.token) {
+        // 如果token在外层
+        localStorage.setItem('token', result.token);
+        console.log('💾 使用外层Token');
+      } else {
+        // 后端未返回token，使用临时mock token（仅用于开发测试）
+        const mockToken = `mock-token-${role}-${username.value}-${Date.now()}`;
+        localStorage.setItem('token', mockToken);
+        console.log('⚠️ 后端未返回Token，使用临时Token:', mockToken);
+      }
+
+      console.log('💾 Token已保存:', localStorage.getItem('token')); // 调试日志3
 
       // 处理记住密码逻辑
       if (rememberMe.value) {
@@ -67,6 +89,7 @@ const handleLogin = async (role) => {
       // 根据角色处理登录后的逻辑
       if (role === 'student') {
         // 学生登录逻辑
+        // 学生登录逻辑
         localStorage.setItem('studentId', result.data.xsXh);
         localStorage.setItem('studentName', result.data.xsXm || '');
         localStorage.setItem('userRole', 'student');
@@ -74,13 +97,15 @@ const handleLogin = async (role) => {
         
         // 【核心修改】检查是否使用默认密码123456
         if (password.value === '123456') {
-          console.log('检测到首次登录（使用默认密码），跳转到首次登录设置页面');
+          console.log('🔐 检测到首次登录（使用默认密码），跳转到首次登录设置页面');
           // 标记首次登录状态
           localStorage.setItem('isFirstLogin', 'true');
+          console.log('🚀 准备跳转到 /first-login'); // 调试日志4
           // 跳转到首次登录设置页面
           router.push('/first-login');
         } else {
           // 非首次登录，直接跳转到学生首页
+          console.log('🚀 准备跳转到 /student/dashboard');
           router.push('/student/dashboard');
         }
 

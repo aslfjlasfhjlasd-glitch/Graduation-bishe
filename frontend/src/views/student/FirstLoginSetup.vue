@@ -55,9 +55,10 @@
           <div class="space-y-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">新密码</label>
-              <Input 
-                v-model="passwordForm.newPassword" 
-                type="password" 
+              <Input
+                v-model="passwordForm.newPassword"
+                type="password"
+                autocomplete="new-password"
                 placeholder="请输入新密码（至少6位，不能为123456）"
                 class="bg-white"
                 :class="{ 'border-red-500': passwordError }"
@@ -65,9 +66,10 @@
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">确认新密码</label>
-              <Input 
-                v-model="passwordForm.confirmPassword" 
-                type="password" 
+              <Input
+                v-model="passwordForm.confirmPassword"
+                type="password"
+                autocomplete="new-password"
                 placeholder="请再次输入新密码"
                 class="bg-white"
                 :class="{ 'border-red-500': passwordError }"
@@ -100,20 +102,20 @@
             <div v-if="interestTags.length > 0">
               <h4 class="text-sm font-medium text-gray-700 mb-2">兴趣标签</h4>
               <div class="flex flex-wrap gap-2">
-                <label 
-                  v-for="tag in interestTags" 
-                  :key="tag.id"
+                <label
+                  v-for="tag in interestTags"
+                  :key="tag.bqId"
                   class="inline-flex items-center gap-2 px-3 py-2 rounded-full cursor-pointer transition-all"
-                  :class="selectedInterests.includes(tag.id) 
-                    ? 'bg-blue-500 text-white shadow-md' 
+                  :class="selectedInterests.includes(tag.bqId)
+                    ? 'bg-blue-500 text-white shadow-md'
                     : 'bg-white text-gray-700 hover:bg-blue-100 border border-gray-300'"
                 >
-                  <Checkbox 
-                    :checked="selectedInterests.includes(tag.id)"
-                    @update:checked="toggleInterest(tag.id)"
+                  <Checkbox
+                    :checked="selectedInterests.includes(tag.bqId)"
+                    @update:checked="toggleInterest(tag.bqId)"
                     class="hidden"
                   />
-                  <span>{{ tag.name }}</span>
+                  <span>{{ tag.bqMc }}</span>
                 </label>
               </div>
             </div>
@@ -122,20 +124,20 @@
             <div v-if="skillTags.length > 0">
               <h4 class="text-sm font-medium text-gray-700 mb-2">技能标签</h4>
               <div class="flex flex-wrap gap-2">
-                <label 
-                  v-for="tag in skillTags" 
-                  :key="tag.id"
+                <label
+                  v-for="tag in skillTags"
+                  :key="tag.bqId"
                   class="inline-flex items-center gap-2 px-3 py-2 rounded-full cursor-pointer transition-all"
-                  :class="selectedSkills.includes(tag.id) 
-                    ? 'bg-green-500 text-white shadow-md' 
+                  :class="selectedSkills.includes(tag.bqId)
+                    ? 'bg-green-500 text-white shadow-md'
                     : 'bg-white text-gray-700 hover:bg-green-100 border border-gray-300'"
                 >
-                  <Checkbox 
-                    :checked="selectedSkills.includes(tag.id)"
-                    @update:checked="toggleSkill(tag.id)"
+                  <Checkbox
+                    :checked="selectedSkills.includes(tag.bqId)"
+                    @update:checked="toggleSkill(tag.bqId)"
                     class="hidden"
                   />
-                  <span>{{ tag.name }}</span>
+                  <span>{{ tag.bqMc }}</span>
                 </label>
               </div>
             </div>
@@ -284,8 +286,11 @@ const loadTags = async () => {
     
     if (response.data.code === 200) {
       const tags = response.data.data
-      interestTags.value = tags.filter(tag => tag.type === '兴趣')
-      skillTags.value = tags.filter(tag => tag.type === '技能')
+      // 后端约定：bqLx=1 是兴趣/活动类别，bqLx=2 是技能
+      interestTags.value = tags.filter(tag => tag.bqLx === 1)
+      skillTags.value = tags.filter(tag => tag.bqLx === 2)
+      console.log('兴趣标签:', interestTags.value)
+      console.log('技能标签:', skillTags.value)
     }
   } catch (error) {
     console.error('加载标签失败:', error)

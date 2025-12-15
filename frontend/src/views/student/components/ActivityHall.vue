@@ -14,7 +14,11 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 const searchKeyword = ref('')
 const selectedStatus = ref('全部')
 const selectedLocation = ref('全部')
+const selectedCredit = ref('全部') // 🔥 新增：学分筛选状态
 const showFilters = ref(false)
+
+// 🔥 新增：定义学分选项
+const creditOptions = ['全部', '0.5分', '1.0分', '1.5分', '2.0分及以上']
 
 const icons = { Leaf, BookOpen, HeartPulse, Sparkles }
 const pickIcon = (title) => {
@@ -67,6 +71,8 @@ const loadActivities = async () => {
         hdjssj: r.hdjssj || null,
         // 【新增】活动类型字段
         hdbq: r.hdbq || r.hdBq || r.HD_BQ || '其他',
+        // 🔥 新增：学分字段
+        hdxf: parseFloat(r.hdxf || r.hdXf || r.HD_XF || 0),
         icon: pickIcon(r.hdmc)
       }))
       updateStatuses()
@@ -399,6 +405,23 @@ const filteredActivities = computed(() => {
     result = result.filter(a => a.hddd === selectedLocation.value)
   }
 
+  // 🔥 新增：学分筛选
+  if (selectedCredit.value !== '全部') {
+    result = result.filter(a => {
+      // 直接使用已经处理好的 hdxf 字段（在 loadActivities 中已经统一处理）
+      const credit = a.hdxf || 0
+      
+      if (selectedCredit.value === '2.0分及以上') {
+        return credit >= 2.0
+      } else {
+        // 提取选项中的数字部分进行比较 (例如 "0.5分" -> 0.5)
+        const target = parseFloat(selectedCredit.value)
+        // 使用极小的误差范围比较浮点数
+        return Math.abs(credit - target) < 0.01
+      }
+    })
+  }
+
   // 🔥 按活动状态优先级排序
   // 优先级：活动进行中 > 活动报名中 > 报名未开始 > 活动未开始 > 活动已结束
   const statusPriority = {
@@ -430,6 +453,7 @@ const clearSearch = () => {
   searchKeyword.value = ''
   selectedStatus.value = '全部'
   selectedLocation.value = '全部'
+  selectedCredit.value = '全部' // 🔥 新增：重置学分筛选
 }
 
 // 切换筛选面板
@@ -693,7 +717,7 @@ onUnmounted(() => {
             <span class="hidden sm:inline">筛选</span>
           </Button>
           <Button
-            v-if="searchKeyword || selectedStatus !== '全部' || selectedLocation !== '全部'"
+            v-if="searchKeyword || selectedStatus !== '全部' || selectedLocation !== '全部' || selectedCredit !== '全部'"
             @click="clearSearch"
             variant="outline"
             class="flex items-center gap-2 px-4 py-3.5 bg-white/80 backdrop-blur-sm border-slate-200 hover:bg-rose-50 hover:border-rose-300 hover:text-rose-700 transition-all duration-200"
@@ -709,26 +733,24 @@ onUnmounted(() => {
         v-if="showFilters"
         class="bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl p-5 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300"
       >
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <!-- 状态筛选 -->
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
               <Filter class="w-4 h-4 text-blue-600" />
               活动状态
             </label>
-            <div class="flex flex-wrap gap-2">
-              <button
-                v-for="status in ['全部', '报名未开始', '活动报名中', '活动未开始', '活动进行中', '活动已结束']"
-                :key="status"
-                @click="selectedStatus = status"
-                class="px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200"
-                :class="selectedStatus === status
-                  ? 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-md'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'"
-              >
-                {{ status }}
-              </button>
-            </div>
+            <select
+              v-model="selectedStatus"
+              class="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200"
+            >
+              <option value="全部">全部</option>
+              <option value="报名未开始">报名未开始</option>
+              <option value="活动报名中">活动报名中</option>
+              <option value="活动未开始">活动未开始</option>
+              <option value="活动进行中">活动进行中</option>
+              <option value="活动已结束">活动已结束</option>
+            </select>
           </div>
 
           <!-- 地点筛选 -->
@@ -746,11 +768,27 @@ onUnmounted(() => {
               </option>
             </select>
           </div>
+
+          <!-- 🔥 新增：学分筛选 -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
+              <Star class="w-4 h-4 text-amber-500" />
+              活动学分
+            </label>
+            <select
+              v-model="selectedCredit"
+              class="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all duration-200"
+            >
+              <option v-for="opt in creditOptions" :key="opt" :value="opt">
+                {{ opt }}
+              </option>
+            </select>
+          </div>
         </div>
       </div>
 
       <!-- 搜索结果统计 -->
-      <div v-if="searchKeyword || selectedStatus !== '全部' || selectedLocation !== '全部'" class="flex items-center gap-2 text-sm text-slate-600">
+      <div v-if="searchKeyword || selectedStatus !== '全部' || selectedLocation !== '全部' || selectedCredit !== '全部'" class="flex items-center gap-2 text-sm text-slate-600">
         <Info class="w-4 h-4" />
         <span>找到 <span class="font-semibold text-blue-600">{{ filteredActivities.length }}</span> 个活动</span>
       </div>
