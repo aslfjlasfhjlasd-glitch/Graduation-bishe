@@ -12,33 +12,7 @@ import {
   PieChart,
   BarChart
 } from 'lucide-vue-next'
-import { getMockDataWithCache, clearMockDataCache } from '@/api/mockData.js'
-
-// 模拟数据类型定义
-type MockData = {
-  metrics: {
-    totalActivities: number
-    activeVolunteers: number
-    totalHours: number
-  }
-  lineChart: {
-    months: string[]
-    activityData: number[]
-    participantData: number[]
-  }
-  pieChart: {
-    data: Array<{ name: string; value: number }>
-  }
-  barChart: {
-    months6: string[]
-    values6: number[]
-    months3: string[]
-    values3: number[]
-  }
-  genderPieChart: {
-    data: Array<{ name: string; value: number }>
-  }
-}
+// Mock 数据已移除，现在完全使用真实数据
 
 // DOM 引用
 const lineChartRef = ref<HTMLElement | null>(null)
@@ -52,8 +26,7 @@ let pieChart: EChartsType | null = null
 let barChart: EChartsType | null = null
 let genderPieChart: EChartsType | null = null
 
-// 演示模式控制
-const isMockMode = ref(false)
+// 演示模式已禁用，仅使用真实数据
 let liveUpdateTimer: number | null = null
 
 // 配置数据
@@ -350,101 +323,7 @@ const initBarChart = async () => {
   barChart.setOption(option)
 }
 
-// ========== 模拟数据模式逻辑 ==========
-
-/**
- * 运行模拟数据逻辑
- */
-const runMockDataLogic = () => {
-  console.log('🎭 进入演示模式')
-  
-  // 获取模拟数据（带缓存）
-  const mockData = getMockDataWithCache(dashboardConfig.value.goal_total_hours) as MockData
-  
-  // 1. 更新顶部指标
-  metrics.value = mockData.metrics
-  
-  // 2. 更新折线图
-  if (lineChart) {
-    lineChart.setOption({
-      xAxis: {
-        data: mockData.lineChart.months
-      },
-      series: [
-        { data: mockData.lineChart.activityData },
-        { data: mockData.lineChart.participantData }
-      ]
-    })
-  }
-  
-  // 3. 更新学院参与度饼图
-  if (pieChart && dashboardConfig.value.show_academy_rank) {
-    pieChart.setOption({
-      series: [
-        { data: mockData.pieChart.data }
-      ]
-    })
-  }
-  
-  // 4. 更新参与率柱状图数据源
-  baseParticipation.value = {
-    months6: mockData.barChart.months6,
-    values6: mockData.barChart.values6,
-    months3: mockData.barChart.months3,
-    values3: mockData.barChart.values3
-  }
-  
-  // 更新柱状图显示
-  if (barChart) {
-    const months = participationRange.value === '3m' ? mockData.barChart.months3 : mockData.barChart.months6
-    const values = participationRange.value === '3m' ? mockData.barChart.values3 : mockData.barChart.values6
-    barChart.setOption({
-      xAxis: { data: months },
-      series: [{ data: values }]
-    })
-  }
-  
-  // 5. 更新男女比例饼图
-  if (genderPieChart && dashboardConfig.value.show_gender_ratio) {
-    genderPieChart.setOption({
-      series: [
-        { data: mockData.genderPieChart.data }
-      ]
-    })
-  }
-  
-  // 6. 启动实时增长效果
-  startLiveUpdate()
-  
-  console.log('✨ 模拟数据已加载:', mockData)
-}
-
-/**
- * 启动实时增长效果（让数据"活"起来）
- */
-const startLiveUpdate = () => {
-  if (liveUpdateTimer) return
-  
-  liveUpdateTimer = window.setInterval(() => {
-    // 30% 概率触发增长
-    if (Math.random() < 0.3) {
-      metrics.value.totalHours += 1
-      console.log('⏱️ 实时工时 +1:', metrics.value.totalHours)
-    }
-  }, 5000) // 每 5 秒检查一次
-}
-
-/**
- * 停止实时增长效果
- */
-const stopLiveUpdate = () => {
-  if (liveUpdateTimer) {
-    clearInterval(liveUpdateTimer)
-    liveUpdateTimer = null
-  }
-}
-
-// ========== 真实数据模式逻辑 ==========
+// ========== 真实数据加载逻辑 ==========
 
 /**
  * 从后端获取真实数据
@@ -542,23 +421,6 @@ const handleResize = () => {
   genderPieChart?.resize()
 }
 
-// 检查是否启用演示模式
-const checkMockMode = () => {
-  // 方式1: 从 localStorage 读取
-  const mode = localStorage.getItem('DASHBOARD_MODE')
-  if (mode === 'demo' || mode === 'mock') {
-    return true
-  }
-  
-  // 方式2: 从 URL 参数读取 (?mode=demo)
-  const urlParams = new URLSearchParams(window.location.search)
-  if (urlParams.get('mode') === 'demo' || urlParams.get('mode') === 'mock') {
-    return true
-  }
-  
-  return false
-}
-
 // 显示提示消息
 const showToast = (message: string) => {
   // 简单的提示实现（可以替换为更好的 UI 库）
@@ -586,10 +448,7 @@ const showToast = (message: string) => {
 
 // 组件挂载
 onMounted(async () => {
-  // 1. 检查演示模式
-  isMockMode.value = checkMockMode()
-  
-  // 2. 加载基础配置（必须先加载配置）
+  // 1. 加载基础配置（必须先加载配置）
   await loadDashboardConfig()
   
   console.log('📋 配置加载完成:', {
@@ -616,15 +475,8 @@ onMounted(async () => {
     console.log('⏭️ 男女比例图表已跳过')
   }
   
-  // 4. 数据注入
-  if (isMockMode.value) {
-    // 演示模式：生成模拟数据
-    runMockDataLogic()
-    showToast('🎭 当前为演示数据模式')
-  } else {
-    // 真实模式：从后端加载
-    await fetchRealData()
-  }
+  // 4. 加载真实数据
+  await fetchRealData()
   
   // 5. 监听窗口大小变化
   window.addEventListener('resize', handleResize)
@@ -633,7 +485,6 @@ onMounted(async () => {
 // 组件卸载
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
-  stopLiveUpdate()
   
   // 安全地销毁图表实例
   try {
@@ -675,16 +526,7 @@ onUnmounted(() => {
 
 // 暴露方法供外部调用（可选）
 defineExpose({
-  switchToMockMode: () => {
-    isMockMode.value = true
-    runMockDataLogic()
-  },
-  switchToRealMode: () => {
-    isMockMode.value = false
-    stopLiveUpdate()
-    fetchRealData()
-  },
-  clearCache: clearMockDataCache
+  refreshData: fetchRealData
 })
 </script>
 
@@ -694,9 +536,6 @@ defineExpose({
     <div class="mb-8">
       <h1 class="text-3xl font-bold text-slate-800 tracking-tight">
         {{ dashboardConfig.dashboard_title }}
-        <span v-if="isMockMode" class="ml-3 text-sm font-normal text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
-          🎭 演示模式
-        </span>
       </h1>
       <!-- 滚动公告 -->
       <div class="mt-3 bg-gradient-to-r from-red-50 to-orange-50 border border-red-100 rounded-lg px-4 py-2.5 overflow-hidden">

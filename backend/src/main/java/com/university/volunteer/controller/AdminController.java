@@ -9,7 +9,6 @@ import com.university.volunteer.entity.VolunteerActivity;
 import com.university.volunteer.service.AdminService;
 import com.university.volunteer.service.ConfigService;
 import com.university.volunteer.service.DepartmentHeadService;
-import com.university.volunteer.service.MockDataService;
 import com.university.volunteer.service.StudentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -26,9 +25,6 @@ public class AdminController {
 
     @Autowired
     private ConfigService configService;
-
-    @Autowired
-    private MockDataService mockDataService;
 
     @Autowired
     private StudentService studentService;
@@ -215,45 +211,6 @@ public class AdminController {
             }
         } catch (Exception e) {
             return Result.error("添加配置失败: " + e.getMessage());
-        }
-    }
-
-    // ==================== 模拟数据生成接口 ====================
-
-    /**
-     * 生成模拟数据（用于演示和测试）
-     * @param payload 包含生成数量的请求体
-     * @return 生成结果
-     */
-    @PostMapping("/mock-data/generate")
-    public Result<String> generateMockData(@RequestBody(required = false) Map<String, Integer> payload) {
-        try {
-            int count = 50; // 默认生成50条
-            if (payload != null && payload.containsKey("count")) {
-                count = payload.get("count");
-                if (count < 1 || count > 200) {
-                    return Result.error("生成数量必须在1-200之间");
-                }
-            }
-            
-            String result = mockDataService.generateMockData(count);
-            return Result.success(result);
-        } catch (Exception e) {
-            return Result.error("生成模拟数据失败: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 清空模拟数据（可选功能）
-     * @return 清空结果
-     */
-    @DeleteMapping("/mock-data/clear")
-    public Result<String> clearMockData() {
-        try {
-            String result = mockDataService.clearMockData();
-            return Result.success(result);
-        } catch (Exception e) {
-            return Result.error("清空数据失败: " + e.getMessage());
         }
     }
 

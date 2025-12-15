@@ -9,6 +9,7 @@ D:\2025-work\毕设\Graduation Project test-1\backend\src\main\java\com\university
 D:\2025-work\毕设\Graduation Project test-1\backend\src\main\java\com\university\volunteer\VolunteerApplication.java
 D:\2025-work\毕设\Graduation Project test-1\backend\src\main\java\com\university\volunteer\dto\StudentProfileDTO.java
 D:\2025-work\毕设\Graduation Project test-1\backend\src\main\java\com\university\volunteer\entity\DepartmentHead.java
+D:\2025-work\毕设\Graduation Project test-1\backend\src\main\java\com\university\volunteer\exception\GlobalExceptionHandler.java
 D:\2025-work\毕设\Graduation Project test-1\backend\src\main\java\com\university\volunteer\entity\Admin.java
 D:\2025-work\毕设\Graduation Project test-1\backend\src\main\java\com\university\volunteer\entity\Tag.java
 D:\2025-work\毕设\Graduation Project test-1\backend\src\main\java\com\university\volunteer\dto\ActivityRecommendDTO.java
@@ -26,7 +27,6 @@ D:\2025-work\毕设\Graduation Project test-1\backend\src\main\java\com\university
 D:\2025-work\毕设\Graduation Project test-1\backend\src\main\java\com\university\volunteer\dto\VolunteerAuditDTO.java
 D:\2025-work\毕设\Graduation Project test-1\backend\src\main\java\com\university\volunteer\controller\StudentActivityController.java
 D:\2025-work\毕设\Graduation Project test-1\backend\src\main\java\com\university\volunteer\entity\Student.java
-D:\2025-work\毕设\Graduation Project test-1\backend\src\main\java\com\university\volunteer\service\MockDataService.java
 D:\2025-work\毕设\Graduation Project test-1\backend\src\main\java\com\university\volunteer\service\StudentActivityService.java
 D:\2025-work\毕设\Graduation Project test-1\backend\src\main\java\com\university\volunteer\controller\DashboardController.java
 D:\2025-work\毕设\Graduation Project test-1\backend\src\main\java\com\university\volunteer\service\DashboardService.java
@@ -36,6 +36,8 @@ D:\2025-work\毕设\Graduation Project test-1\backend\src\main\java\com\university
 D:\2025-work\毕设\Graduation Project test-1\backend\src\main\java\com\university\volunteer\mapper\ActivityTagMapper.java
 D:\2025-work\毕设\Graduation Project test-1\backend\src\main\java\com\university\volunteer\mapper\AdminMapper.java
 D:\2025-work\毕设\Graduation Project test-1\backend\src\main\java\com\university\volunteer\mapper\ConfigMapper.java
+D:\2025-work\毕设\Graduation Project test-1\backend\src\main\java\com\university\volunteer\util\PasswordUtil.java
+D:\2025-work\毕设\Graduation Project test-1\backend\src\main\java\com\university\volunteer\util\TokenUtil.java
 D:\2025-work\毕设\Graduation Project test-1\backend\src\main\java\com\university\volunteer\controller\AuthController.java
 D:\2025-work\毕设\Graduation Project test-1\backend\src\main\java\com\university\volunteer\mapper\StudentTagMapper.java
 D:\2025-work\毕设\Graduation Project test-1\backend\src\main\java\com\university\volunteer\service\AuthService.java

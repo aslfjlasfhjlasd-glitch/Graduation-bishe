@@ -10,8 +10,13 @@ import com.university.volunteer.mapper.AcademyMapper;
 import com.university.volunteer.mapper.AdminMapper;
 import com.university.volunteer.mapper.DepartmentHeadMapper;
 import com.university.volunteer.mapper.StudentMapper;
+import com.university.volunteer.util.PasswordUtil;
+import com.university.volunteer.util.TokenUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class AuthService {
@@ -33,7 +38,7 @@ public class AuthService {
      * 根据传入的角色类型调用相应的登录验证逻辑
      *
      * @param request 登录请求参数（包含用户名、密码、角色）
-     * @return 登录结果（包含用户信息或错误提示）
+     * @return 登录结果（包含用户信息和Token）
      */
     public Result<?> login(LoginRequest request) {
         String role = request.getRole();
@@ -57,7 +62,7 @@ public class AuthService {
             }
         } catch (Exception e) {
             e.printStackTrace();
-            return Result.error("数据库错误: " + e.getMessage());
+            return Result.error("登录失败: " + e.getMessage());
         }
     }
 
@@ -66,7 +71,7 @@ public class AuthService {
      *
      * @param username 学号
      * @param password 密码
-     * @return 验证结果
+     * @return 验证结果（包含Token）
      */
     private Result<?> loginStudent(String username, String password) {
         Integer studentId;
@@ -83,12 +88,32 @@ public class AuthService {
             return Result.error("账号不存在");
         }
 
-        // 验证密码
-        if (!password.equals(student.getXsMm())) {
+        // 验证密码（支持加密和明文）
+        String storedPassword = student.getXsMm();
+        boolean passwordMatch = false;
+        
+        if (PasswordUtil.isEncoded(storedPassword)) {
+            // 数据库中是加密密码，使用加密验证
+            passwordMatch = PasswordUtil.matches(password, storedPassword);
+        } else {
+            // 数据库中是明文密码，直接比较（兼容旧数据）
+            passwordMatch = password.equals(storedPassword);
+        }
+        
+        if (!passwordMatch) {
             return Result.error("密码错误");
         }
 
-        return Result.success(student);
+        // 生成Token
+        String token = TokenUtil.generateToken(username, "student", String.valueOf(studentId));
+        
+        // 构造返回数据
+        Map<String, Object> data = new HashMap<>();
+        data.put("user", student);
+        data.put("token", token);
+        data.put("role", "student");
+
+        return Result.success(data);
     }
 
     /**
@@ -97,22 +122,52 @@ public class AuthService {
      *
      * @param username 账号
      * @param password 密码
-     * @return 验证结果
+     * @return 验证结果（包含Token）
      */
     private Result<?> loginHead(String username, String password) {
         // 1. 检查部门负责人表
         DepartmentHead deptHead = departmentHeadMapper.findByUsername(username);
         if (deptHead != null) {
-            if (password.equals(deptHead.getXjbmfzrMm())) {
-                return Result.success(deptHead);
+            String storedPassword = deptHead.getXjbmfzrMm();
+            boolean passwordMatch = false;
+            
+            if (PasswordUtil.isEncoded(storedPassword)) {
+                passwordMatch = PasswordUtil.matches(password, storedPassword);
+            } else {
+                passwordMatch = password.equals(storedPassword);
+            }
+            
+            if (passwordMatch) {
+                String token = TokenUtil.generateToken(username, "head", deptHead.getXjbmfzrZh());
+                Map<String, Object> data = new HashMap<>();
+                data.put("user", deptHead);
+                data.put("token", token);
+                data.put("role", "head");
+                data.put("accountType", "department");
+                return Result.success(data);
             }
         }
 
         // 2. 检查学院表
         Academy academy = academyMapper.findByUsername(username);
         if (academy != null) {
-            if (password.equals(academy.getXyMm())) {
-                return Result.success(academy);
+            String storedPassword = academy.getXyMm();
+            boolean passwordMatch = false;
+            
+            if (PasswordUtil.isEncoded(storedPassword)) {
+                passwordMatch = PasswordUtil.matches(password, storedPassword);
+            } else {
+                passwordMatch = password.equals(storedPassword);
+            }
+            
+            if (passwordMatch) {
+                String token = TokenUtil.generateToken(username, "head", academy.getXyZh());
+                Map<String, Object> data = new HashMap<>();
+                data.put("user", academy);
+                data.put("token", token);
+                data.put("role", "head");
+                data.put("accountType", "academy");
+                return Result.success(data);
             }
         }
         
@@ -130,7 +185,7 @@ public class AuthService {
      *
      * @param username 管理员账号
      * @param password 密码
-     * @return 验证结果
+     * @return 验证结果（包含Token）
      */
     private Result<?> loginAdmin(String username, String password) {
         // 查询管理员信息
@@ -139,11 +194,29 @@ public class AuthService {
             return Result.error("账号不存在");
         }
 
-        // 验证密码
-        if (!password.equals(admin.getGlyMm())) {
+        // 验证密码（支持加密和明文）
+        String storedPassword = admin.getGlyMm();
+        boolean passwordMatch = false;
+        
+        if (PasswordUtil.isEncoded(storedPassword)) {
+            passwordMatch = PasswordUtil.matches(password, storedPassword);
+        } else {
+            passwordMatch = password.equals(storedPassword);
+        }
+        
+        if (!passwordMatch) {
             return Result.error("密码错误");
         }
 
-        return Result.success(admin);
+        // 生成Token
+        String token = TokenUtil.generateToken(username, "admin", admin.getGlyZh());
+        
+        // 构造返回数据
+        Map<String, Object> data = new HashMap<>();
+        data.put("user", admin);
+        data.put("token", token);
+        data.put("role", "admin");
+
+        return Result.success(data);
     }
 }
