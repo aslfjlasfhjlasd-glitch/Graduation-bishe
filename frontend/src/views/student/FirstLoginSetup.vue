@@ -59,7 +59,7 @@
                 v-model="passwordForm.newPassword"
                 type="password"
                 autocomplete="new-password"
-                placeholder="请输入新密码（至少6位，不能为123456）"
+                placeholder="8-15位，必须包含大小写字母"
                 class="bg-white"
                 :class="{ 'border-red-500': passwordError }"
               />
@@ -80,6 +80,12 @@
                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
               </svg>
               {{ passwordError }}
+            </div>
+            <!-- 密码要求提示 -->
+            <div class="bg-white rounded-md p-3 border border-amber-200">
+              <p class="text-xs font-semibold text-amber-700">
+                密码要求：密码长度必须为 8-15位，且包含大小写字母
+              </p>
             </div>
           </div>
         </div>
@@ -194,7 +200,7 @@ const loading = ref(false)
 const submitting = ref(false)
 const passwordError = ref('')
 
-// 密码校验
+// 密码校验 - 更新为新的要求
 const validatePassword = () => {
   const { newPassword, confirmPassword } = passwordForm.value
   
@@ -208,8 +214,21 @@ const validatePassword = () => {
     return false
   }
   
-  if (newPassword.length < 6) {
-    passwordError.value = '密码长度至少为6位'
+  // 检查长度：8-15位
+  if (newPassword.length < 8 || newPassword.length > 15) {
+    passwordError.value = '密码长度必须为8-15位'
+    return false
+  }
+  
+  // 检查是否包含大写字母
+  if (!/[A-Z]/.test(newPassword)) {
+    passwordError.value = '密码必须包含至少一个大写字母'
+    return false
+  }
+  
+  // 检查是否包含小写字母
+  if (!/[a-z]/.test(newPassword)) {
+    passwordError.value = '密码必须包含至少一个小写字母'
     return false
   }
   

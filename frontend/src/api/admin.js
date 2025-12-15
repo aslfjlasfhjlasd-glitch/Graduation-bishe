@@ -1,40 +1,8 @@
 import axios from 'axios';
 
-// API基础URL - 从环境变量读取，开发环境默认使用代理
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+// API基础URL
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const API_BASE_URL = `${API_BASE}/api/admin`;
-
-// 配置 axios 拦截器
-axios.interceptors.request.use(
-  config => {
-    // 从 localStorage 获取 token 并添加到请求头
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
-    }
-    return config;
-  },
-  error => {
-    return Promise.reject(error);
-  }
-);
-
-// 响应拦截器 - 处理 token 过期等情况
-axios.interceptors.response.use(
-  response => {
-    return response;
-  },
-  error => {
-    if (error.response && error.response.status === 401) {
-      // Token 过期或无效，跳转到登录页
-      localStorage.removeItem('token');
-      localStorage.removeItem('role');
-      localStorage.removeItem('userInfo');
-      window.location.href = '/';
-    }
-    return Promise.reject(error);
-  }
-);
 
 // 获取志愿者审核列表
 export const getVolunteerReviews = (status) => {
@@ -144,6 +112,25 @@ export const getDashboardData = () => {
  */
 export const getDashboardConfigs = () => {
   return axios.get(`${API_BASE}/api/dashboard/configs`);
+};
+
+// ==================== 模拟数据生成 API ====================
+
+/**
+ * 生成模拟数据
+ * @param {number} count 生成数量（默认50条）
+ * @returns {Promise} 生成结果
+ */
+export const generateMockData = (count = 50) => {
+  return axios.post(`${API_BASE_URL}/mock-data/generate`, { count });
+};
+
+/**
+ * 清空模拟数据
+ * @returns {Promise} 清空结果
+ */
+export const clearMockData = () => {
+  return axios.delete(`${API_BASE_URL}/mock-data/clear`);
 };
 
 // ==================== 账号管理 API ====================

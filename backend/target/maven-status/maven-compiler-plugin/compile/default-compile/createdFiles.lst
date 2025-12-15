@@ -32,6 +32,7 @@ com\university\volunteer\service\DashboardService.class
 com\university\volunteer\dto\StudentProfileDTO.class
 com\university\volunteer\mapper\DepartmentHeadMapper.class
 com\university\volunteer\entity\VolunteerActivity.class
+com\university\volunteer\service\MockDataService.class
 com\university\volunteer\mapper\DashboardMapper.class
 com\university\volunteer\VolunteerApplication.class
 com\university\volunteer\mapper\StudentMapper.class

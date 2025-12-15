@@ -65,6 +65,11 @@ const passwordForm = ref({
 })
 
 const changingPassword = ref(false)
+const passwordErrors = ref({
+  oldPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+})
 
 // 显示提示
 const showToast = (type, message) => {
@@ -227,6 +232,29 @@ const validatePoliticalStatus = () => {
   return true
 }
 
+// 验证密码格式
+const validatePasswordFormat = (password) => {
+  if (!password) {
+    return '密码不能为空'
+  }
+  
+  if (password.length < 8 || password.length > 15) {
+    return '密码长度必须为8-15位'
+  }
+  
+  // 检查是否包含大写字母
+  if (!/[A-Z]/.test(password)) {
+    return '密码必须包含至少一个大写字母'
+  }
+  
+  // 检查是否包含小写字母
+  if (!/[a-z]/.test(password)) {
+    return '密码必须包含至少一个小写字母'
+  }
+  
+  return null
+}
+
 // 保存个人信息（标签和简介）
 const saveTagsAndProfile = async () => {
   saving.value = true
@@ -298,18 +326,43 @@ const genderDisplay = computed(() => {
 
 // 修改密码
 const handlePasswordChange = async () => {
+  // 清空之前的错误
+  passwordErrors.value = {
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  }
+
   // 验证表单
-  if (!passwordForm.value.oldPassword || !passwordForm.value.newPassword || !passwordForm.value.confirmPassword) {
+  if (!passwordForm.value.oldPassword) {
+    passwordErrors.value.oldPassword = '请输入原密码'
     showToast('error', '请填写所有密码字段')
     return
   }
 
-  if (passwordForm.value.newPassword.length < 6) {
-    showToast('error', '新密码长度不能少于6位')
+  if (!passwordForm.value.newPassword) {
+    passwordErrors.value.newPassword = '请输入新密码'
+    showToast('error', '请填写所有密码字段')
     return
   }
 
+  if (!passwordForm.value.confirmPassword) {
+    passwordErrors.value.confirmPassword = '请确认新密码'
+    showToast('error', '请填写所有密码字段')
+    return
+  }
+
+  // 验证新密码格式
+  const passwordError = validatePasswordFormat(passwordForm.value.newPassword)
+  if (passwordError) {
+    passwordErrors.value.newPassword = passwordError
+    showToast('error', passwordError)
+    return
+  }
+
+  // 验证两次密码是否一致
   if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
+    passwordErrors.value.confirmPassword = '两次输入的新密码不一致'
     showToast('error', '两次输入的新密码不一致')
     return
   }
@@ -330,6 +383,11 @@ const handlePasswordChange = async () => {
         newPassword: '',
         confirmPassword: ''
       }
+      passwordErrors.value = {
+        oldPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      }
     } else {
       showToast('error', response.data.message || '密码修改失败')
     }
@@ -344,6 +402,11 @@ const handlePasswordChange = async () => {
 // 取消密码修改
 const handlePasswordCancel = () => {
   passwordForm.value = {
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  }
+  passwordErrors.value = {
     oldPassword: '',
     newPassword: '',
     confirmPassword: ''
@@ -493,7 +556,7 @@ onMounted(async () => {
         </CardContent>
       </Card>
 
-      <!-- 修改密码卡片 - 缩小尺寸，新密码和确认密码并排 -->
+      <!-- 修改密码卡片 -->
       <Card class="hover:shadow-lg transition-shadow duration-300">
         <CardHeader>
           <CardTitle class="flex items-center gap-2 text-xl">
@@ -512,8 +575,12 @@ onMounted(async () => {
                 type="password"
                 placeholder="请输入原密码"
                 autocomplete="current-password"
-                class="h-10"
+                :class="['h-10', passwordErrors.oldPassword ? 'border-rose-500' : '']"
               />
+              <p v-if="passwordErrors.oldPassword" class="text-xs text-rose-600 flex items-center gap-1">
+                <AlertCircle class="w-3 h-3" />
+                {{ passwordErrors.oldPassword }}
+              </p>
             </div>
 
             <!-- 新密码 -->
@@ -522,10 +589,14 @@ onMounted(async () => {
               <Input
                 v-model="passwordForm.newPassword"
                 type="password"
-                placeholder="至少6位"
+                placeholder="8-15位，含大小写"
                 autocomplete="new-password"
-                class="h-10"
+                :class="['h-10', passwordErrors.newPassword ? 'border-rose-500' : '']"
               />
+              <p v-if="passwordErrors.newPassword" class="text-xs text-rose-600 flex items-center gap-1">
+                <AlertCircle class="w-3 h-3" />
+                {{ passwordErrors.newPassword }}
+              </p>
             </div>
 
             <!-- 确认新密码 -->
@@ -536,8 +607,12 @@ onMounted(async () => {
                 type="password"
                 placeholder="再次输入"
                 autocomplete="new-password"
-                class="h-10"
+                :class="['h-10', passwordErrors.confirmPassword ? 'border-rose-500' : '']"
               />
+              <p v-if="passwordErrors.confirmPassword" class="text-xs text-rose-600 flex items-center gap-1">
+                <AlertCircle class="w-3 h-3" />
+                {{ passwordErrors.confirmPassword }}
+              </p>
             </div>
           </div>
 
@@ -562,12 +637,9 @@ onMounted(async () => {
           </div>
 
           <div class="text-xs text-slate-500 pt-2 border-t">
-            <p class="font-medium mb-1">提示：</p>
-            <ul class="list-disc list-inside space-y-1">
-              <li>新密码长度不能少于6位</li>
-              <li>请妥善保管您的密码</li>
-              <li>修改密码后，下次登录需使用新密码</li>
-            </ul>
+            <p class="font-medium text-orange-600">
+              密码要求：密码长度必须为 8-15位，且包含大小写字母
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -664,8 +736,8 @@ onMounted(async () => {
 
             <!-- 自定义标签输入 -->
             <div class="flex gap-2">
-              <Input 
-                v-model="customSkill" 
+              <Input
+                v-model="customSkill"
                 placeholder="输入自定义技能标签"
                 @keyup.enter="addCustomSkill"
                 class="flex-1 h-9"

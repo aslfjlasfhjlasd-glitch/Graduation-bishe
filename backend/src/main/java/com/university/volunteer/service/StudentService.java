@@ -9,7 +9,6 @@ import com.university.volunteer.entity.Tag;
 import com.university.volunteer.mapper.StudentMapper;
 import com.university.volunteer.mapper.StudentTagMapper;
 import com.university.volunteer.mapper.TagMapper;
-import com.university.volunteer.util.PasswordUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -88,7 +87,7 @@ public class StudentService {
                 }
             }
 
-            // 处理标签更新
+            // 处理标签更新（新增逻辑）
             if (student.getTagIds() != null && !student.getTagIds().isEmpty()) {
                 // 1. 删除学生的所有旧标签关联
                 studentTagMapper.deleteByStudentId(student.getXsXh());
@@ -147,7 +146,7 @@ public class StudentService {
                 return Result.error("学号不能为空");
             }
 
-            // 处理标签更新
+            // 处理标签更新（与updateStudentProfile相同的逻辑）
             if (student.getTagIds() != null && !student.getTagIds().isEmpty()) {
                 studentTagMapper.deleteByStudentId(student.getXsXh());
                 
@@ -190,6 +189,49 @@ public class StudentService {
     }
 
     /**
+     * 验证密码格式
+     * 要求：8-15位，必须包含大写字母和小写字母
+     * @param password 密码
+     * @return 验证结果消息，null表示验证通过
+     */
+    private String validatePasswordFormat(String password) {
+        if (password == null || password.trim().isEmpty()) {
+            return "密码不能为空";
+        }
+        
+        // 检查长度
+        if (password.length() < 8 || password.length() > 15) {
+            return "密码长度必须为8-15位";
+        }
+        
+        // 检查是否包含大写字母
+        boolean hasUpperCase = false;
+        boolean hasLowerCase = false;
+        
+        for (char c : password.toCharArray()) {
+            if (Character.isUpperCase(c)) {
+                hasUpperCase = true;
+            }
+            if (Character.isLowerCase(c)) {
+                hasLowerCase = true;
+            }
+            if (hasUpperCase && hasLowerCase) {
+                break;
+            }
+        }
+        
+        if (!hasUpperCase) {
+            return "密码必须包含至少一个大写字母";
+        }
+        
+        if (!hasLowerCase) {
+            return "密码必须包含至少一个小写字母";
+        }
+        
+        return null; // 验证通过
+    }
+
+    /**
      * 修改学生密码
      * @param studentId 学号
      * @param oldPassword 原密码
@@ -200,11 +242,9 @@ public class StudentService {
     public Result<String> updatePassword(Integer studentId, String oldPassword, String newPassword) {
         try {
             // 验证新密码格式
-            if (newPassword == null || newPassword.trim().isEmpty()) {
-                return Result.error("新密码不能为空");
-            }
-            if (newPassword.length() < 6) {
-                return Result.error("新密码长度不能少于6位");
+            String validationError = validatePasswordFormat(newPassword);
+            if (validationError != null) {
+                return Result.error(validationError);
             }
             
             // 查询学生信息验证旧密码
@@ -213,23 +253,13 @@ public class StudentService {
                 return Result.error("学生信息不存在");
             }
             
-            // 验证旧密码（支持加密和明文）
-            String storedPassword = student.getXsMm();
-            boolean passwordMatch = false;
-            
-            if (PasswordUtil.isEncoded(storedPassword)) {
-                passwordMatch = PasswordUtil.matches(oldPassword, storedPassword);
-            } else {
-                passwordMatch = oldPassword.equals(storedPassword);
-            }
-            
-            if (!passwordMatch) {
+            // 验证旧密码
+            if (!oldPassword.equals(student.getXsMm())) {
                 return Result.error("原密码错误");
             }
             
-            // 加密新密码后更新
-            String encryptedPassword = PasswordUtil.encode(newPassword);
-            int rows = studentMapper.updatePassword(studentId, encryptedPassword);
+            // 更新密码
+            int rows = studentMapper.updatePassword(studentId, newPassword);
             if (rows > 0) {
                 return Result.success("密码修改成功");
             } else {
@@ -340,7 +370,6 @@ public class StudentService {
 
     /**
      * 创建学生账号（管理员用）
-     * 重要：密码使用加密存储
      */
     @Transactional(rollbackFor = Exception.class)
     public Result<String> createStudent(AccountCreateDTO dto) {
@@ -376,14 +405,11 @@ public class StudentService {
                 password = "123456"; // 默认密码
             }
             
-            // 5. 加密密码（重要：防止明文存储）
-            String encryptedPassword = PasswordUtil.encode(password);
-            
-            // 6. 创建学生对象
+            // 5. 创建学生对象
             Student student = new Student();
             student.setXsXh(studentId);
             student.setXsXm(dto.getUsername());
-            student.setXsMm(encryptedPassword); // 使用加密后的密码
+            student.setXsMm(password); // 密码以明文存储（与登录逻辑一致）
             student.setSsXy(dto.getAcademy());
             student.setXsDh(dto.getPhone());
             
@@ -392,7 +418,7 @@ public class StudentService {
             student.setZzmm(dto.getPoliticalStatus());
             student.setBjMc(dto.getClassName());
             
-            // 7. 插入数据库
+            // 6. 插入数据库
             int rows = studentMapper.insertStudent(student);
             if (rows > 0) {
                 return Result.success("学生账号创建成功，初始密码：" + password);
@@ -426,10 +452,9 @@ public class StudentService {
             student.setZzmm(dto.getPoliticalStatus());
             student.setBjMc(dto.getClassName());
             
-            // 如果提供了密码，则加密后更新
+            // 如果提供了密码，则更新密码
             if (dto.getPassword() != null && !dto.getPassword().trim().isEmpty()) {
-                String encryptedPassword = PasswordUtil.encode(dto.getPassword());
-                student.setXsMm(encryptedPassword);
+                student.setXsMm(dto.getPassword());
             }
             
             int rows = studentMapper.updateStudentFullInfo(student);
@@ -460,10 +485,9 @@ public class StudentService {
                 return Result.error("学生不存在");
             }
             
-            // 重置为默认密码并加密
+            // 重置为默认密码
             String defaultPassword = "123456";
-            String encryptedPassword = PasswordUtil.encode(defaultPassword);
-            int rows = studentMapper.updatePassword(studentId, encryptedPassword);
+            int rows = studentMapper.updatePassword(studentId, defaultPassword);
             if (rows > 0) {
                 return Result.success("密码已重置为：" + defaultPassword);
             } else {
