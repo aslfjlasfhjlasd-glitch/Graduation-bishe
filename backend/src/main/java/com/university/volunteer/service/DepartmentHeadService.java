@@ -1,3 +1,4 @@
+
 package com.university.volunteer.service;
 
 import com.university.volunteer.common.Result;
@@ -6,6 +7,7 @@ import com.university.volunteer.dto.AccountUpdateDTO;
 import com.university.volunteer.dto.HeadAccountDTO;
 import com.university.volunteer.entity.*;
 import com.university.volunteer.mapper.*;
+import com.university.volunteer.util.PasswordUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -118,7 +120,7 @@ public class DepartmentHeadService {
     }
 
     /**
-     * 修改密码
+     * 修改密码（支持加密）
      */
     @Transactional(rollbackFor = Exception.class)
     public Result<String> updatePassword(String username, String oldPassword, String newPassword) {
@@ -133,13 +135,23 @@ public class DepartmentHeadService {
         // 先查部门负责人表
         DepartmentHead deptHead = departmentHeadMapper.findByUsername(username);
         if (deptHead != null) {
-            // 验证旧密码
-            if (!oldPassword.equals(deptHead.getXjbmfzrMm())) {
+            // 验证旧密码（支持加密和明文）
+            String storedPassword = deptHead.getXjbmfzrMm();
+            boolean passwordMatch = false;
+            
+            if (PasswordUtil.isEncoded(storedPassword)) {
+                passwordMatch = PasswordUtil.matches(oldPassword, storedPassword);
+            } else {
+                passwordMatch = oldPassword.equals(storedPassword);
+            }
+            
+            if (!passwordMatch) {
                 return Result.error("原密码错误");
             }
             
-            // 更新密码
-            int rows = departmentHeadMapper.updatePassword(username, newPassword);
+            // 加密新密码后更新
+            String encryptedPassword = PasswordUtil.encode(newPassword);
+            int rows = departmentHeadMapper.updatePassword(username, encryptedPassword);
             if (rows > 0) {
                 return Result.success("密码修改成功");
             } else {
@@ -150,13 +162,23 @@ public class DepartmentHeadService {
         // 再查学院表
         Academy academy = academyMapper.findByUsername(username);
         if (academy != null) {
-            // 验证旧密码
-            if (!oldPassword.equals(academy.getXyMm())) {
+            // 验证旧密码（支持加密和明文）
+            String storedPassword = academy.getXyMm();
+            boolean passwordMatch = false;
+            
+            if (PasswordUtil.isEncoded(storedPassword)) {
+                passwordMatch = PasswordUtil.matches(oldPassword, storedPassword);
+            } else {
+                passwordMatch = oldPassword.equals(storedPassword);
+            }
+            
+            if (!passwordMatch) {
                 return Result.error("原密码错误");
             }
             
-            // 更新密码
-            int rows = academyMapper.updatePassword(username, newPassword);
+            // 加密新密码后更新
+            String encryptedPassword = PasswordUtil.encode(newPassword);
+            int rows = academyMapper.updatePassword(username, encryptedPassword);
             if (rows > 0) {
                 return Result.success("密码修改成功");
             } else {
@@ -251,7 +273,7 @@ public class DepartmentHeadService {
     }
 
     /**
-     * 更新活动信息（新增标签处理）
+     * 更新活动信息
      */
     @Transactional(rollbackFor = Exception.class)
     public Result<String> updateActivity(VolunteerActivity activity) {
@@ -311,7 +333,6 @@ public class DepartmentHeadService {
         }
         
         // 先删除该活动的所有报名记录
-        // 注意：这里简化处理，实际应该先检查是否有已审核通过的报名
         int rows = studentActivityMapper.deleteActivity(activityId);
         if (rows > 0) {
             return Result.success("活动删除成功");
@@ -413,7 +434,7 @@ public class DepartmentHeadService {
     }
 
     /**
-     * 创建新活动（新增标签处理）
+     * 创建新活动
      */
     @Transactional(rollbackFor = Exception.class)
     public Result<VolunteerActivity> createActivity(String username, VolunteerActivity activity) {
@@ -424,7 +445,7 @@ public class DepartmentHeadService {
         Admin admin = adminMapper.findByUsername(username);
         if (admin != null) {
             isAdmin = true;
-            // 管理员统一使用“国志协”作为发起单位
+            // 管理员统一使用"国志协"作为发起单位
             department = "国志协";
         } else {
             // 2. 获取负责人信息以确定发起单位
@@ -447,7 +468,6 @@ public class DepartmentHeadService {
         activity.setHdZt("未开始"); // 活动状态初始为未开始
         
         // 根据用户类型设置不同的默认发布状态
-        // 管理员创建的活动默认为"待发布"，负责人创建的活动默认为"未申报"
         if (isAdmin) {
             activity.setFbZt("待发布"); // 管理员创建的活动默认待发布
         } else {
@@ -772,6 +792,7 @@ public class DepartmentHeadService {
     /**
      * 创建负责人账号（管理员用）
      * 根据 accountType 决定创建校级部门负责人还是学院负责人
+     * 重要：密码使用加密存储
      */
     @Transactional(rollbackFor = Exception.class)
     public Result<String> createDepartmentHead(AccountCreateDTO dto) {
@@ -793,7 +814,10 @@ public class DepartmentHeadService {
                 password = "123456";
             }
             
-            // 3. 根据类型创建不同的账号
+            // 3. 加密密码（重要：防止明文存储）
+            String encryptedPassword = PasswordUtil.encode(password);
+            
+            // 4. 根据类型创建不同的账号
             String accountType = dto.getAccountType();
             if ("academy".equals(accountType)) {
                 // 创建学院负责人
@@ -806,7 +830,7 @@ public class DepartmentHeadService {
                 academy.setXyZh(dto.getCode());
                 academy.setXyMc(dto.getDepartment());
                 academy.setFzrXm(dto.getUsername());
-                academy.setXyMm(password);
+                academy.setXyMm(encryptedPassword); // 使用加密后的密码
                 academy.setXyDh(dto.getPhone());
                 
                 int rows = academyMapper.insertAcademy(academy);
@@ -825,7 +849,7 @@ public class DepartmentHeadService {
                 DepartmentHead head = new DepartmentHead();
                 head.setXjbmfzrZh(dto.getCode());
                 head.setXjbmfzrXm(dto.getUsername());
-                head.setXjbmfzrMm(password);
+                head.setXjbmfzrMm(encryptedPassword); // 使用加密后的密码
                 head.setXjbmMc(dto.getDepartment());
                 head.setXjbmfzrDh(dto.getPhone());
                 
@@ -869,8 +893,10 @@ public class DepartmentHeadService {
                 
                 int rows = academyMapper.updateAcademy(academy);
                 
+                // 如果提供了密码，则加密后更新
                 if (dto.getPassword() != null && !dto.getPassword().trim().isEmpty()) {
-                    academyMapper.updatePassword(username, dto.getPassword());
+                    String encryptedPassword = PasswordUtil.encode(dto.getPassword());
+                    academyMapper.updatePassword(username, encryptedPassword);
                 }
                 
                 if (rows > 0) {
@@ -891,8 +917,10 @@ public class DepartmentHeadService {
                 
                 int rows = departmentHeadMapper.updateDepartmentHead(head);
                 
+                // 如果提供了密码，则加密后更新
                 if (dto.getPassword() != null && !dto.getPassword().trim().isEmpty()) {
-                    departmentHeadMapper.updatePassword(username, dto.getPassword());
+                    String encryptedPassword = PasswordUtil.encode(dto.getPassword());
+                    departmentHeadMapper.updatePassword(username, encryptedPassword);
                 }
                 
                 if (rows > 0) {
@@ -918,7 +946,9 @@ public class DepartmentHeadService {
                 return Result.error("账号不能为空");
             }
             
+            // 重置为默认密码并加密
             String defaultPassword = "123456";
+            String encryptedPassword = PasswordUtil.encode(defaultPassword);
             int rows = 0;
             
             if ("academy".equals(accountType)) {
@@ -927,14 +957,14 @@ public class DepartmentHeadService {
                 if (academy == null) {
                     return Result.error("学院负责人不存在");
                 }
-                rows = academyMapper.updatePassword(username, defaultPassword);
+                rows = academyMapper.updatePassword(username, encryptedPassword);
             } else {
                 // 重置校级部门负责人密码
                 DepartmentHead head = departmentHeadMapper.findByUsername(username);
                 if (head == null) {
                     return Result.error("校级部门负责人不存在");
                 }
-                rows = departmentHeadMapper.updatePassword(username, defaultPassword);
+                rows = departmentHeadMapper.updatePassword(username, encryptedPassword);
             }
             
             if (rows > 0) {
